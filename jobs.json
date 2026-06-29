@@ -1,0 +1,797 @@
+[
+  {
+    "id": "manual-f95348",
+    "position": "Data Scientist",
+    "company": "Amazon Prime Video Sports Science",
+    "source": "Manual",
+    "link": "https://www.amazon.jobs/en-gb/jobs/3144807/data-scientist-prime-video-sports-science",
+    "scraped_at": "2026-04-26T12:02:27.451Z",
+    "location": null,
+    "date": "2026-04-26",
+    "responsibilities": [
+      "- Experimentation at scale: Design, execute, and analyze A/B tests, from short-cycle learning experiments to full product launches across worldwide marketplaces",
+      "- Measurement & metrics: Build frameworks to measure content discovery quality, search recall, recommendation relevance, and broadcast experience, including novel methodologies for live, time-sensitive content",
+      "- Sports analytics: Deep-dive into customer behavior around live events: engagement patterns, affinity segmentation, broadcast quality, and tentpole event dynamics",
+      "- Product partnership: Partner with Applied Scientists, Engineers, and Product Managers to define requirements, evaluate models, and drive data-informed decisions",
+      "- Analytical leadership: Own data structures, metrics definitions, and best practices. Communicate findings clearly to technical and business stakeholders",
+      "- Shape a growing domain: Help define the data science roadmap as we expand into new areas of live sports"
+    ],
+    "requirements": [
+      "- Experience with Python for data analysis and machine learning",
+      "- Experience with Redshift, SparkSQL, Athena",
+      "- Experience designing and evaluating A/B tests in a product environment",
+      "- Experience with statistical modeling and causal inference methods",
+      "- Experience in a Data Science role with a large technology company",
+      "- Familiarity with recommendation systems or search technologies"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": "",
+    "description": null,
+    "deleted": true
+  },
+  {
+    "id": "manual-6026f5",
+    "position": "AI Engineer",
+    "company": "gini-apps",
+    "source": "Manual",
+    "link": "https://hrmony.ai/gini-apps/careers/job-offers/1000231?coref=1.11.p68_8A19",
+    "scraped_at": "2026-04-26T12:11:25.938Z",
+    "location": null,
+    "date": "2026-04-26",
+    "responsibilities": [
+      "Develop and implement AI agents and LLM workflows",
+      "Work on prompting, retrieval, context management, and evaluation pipelines",
+      "Bring AI-based features and modules into production",
+      "Improve system answer quality and reliability",
+      "Collaborate with the data team on semantic layers and data modeling",
+      "Develop in Python within a production environment",
+      "Work with Docker, Git, and modern development workflows"
+    ],
+    "requirements": [
+      "3+ years of experience in AI / LLM / agent development",
+      "Experience building AI agents and agent tools, including multi agent systems and agent memory",
+      "Hands-on experience building AI products that reached production",
+      "Strong Python experience",
+      "Experience with Docker and Git",
+      "Good understanding of LLMs, prompting, and agentic workflows",
+      "Ability to work in a dynamic startup environment"
+    ],
+    "nice_to_have": [
+      "Background in data / analytics",
+      "Experience with RAG and evaluation systems",
+      "Experience with vector databases or orchestration frameworks"
+    ],
+    "last_email": {
+      "thread_link": "https://mail.google.com/mail/u/0/#inbox/19deee05643c9cf5",
+      "classification": "Auto_ack",
+      "date": "2026-05-03",
+      "subject": "Welcome to Our Talent Network"
+    },
+    "status_auto": "Applied",
+    "status_manual": "Applied",
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": "",
+    "description": "An AI startup is looking for an AI Engineer to join its core team at an advanced and critical pre-launch stage. This role focuses on building AI capabilities at the heart of the product, working on LLM-based systems and AI agents, and collaborating closely with product and data teams."
+  },
+  {
+    "id": "nbn-dcd221",
+    "position": "Computer Vision Engineer",
+    "company": "NBN Connect",
+    "source": "LinkedIn",
+    "link": "https://www.linkedin.com/jobs/view/4366928544/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": "Tel Aviv-Yafo, Tel Aviv District, Israel (On-site)",
+    "date": null,
+    "description": null,
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": "",
+    "deleted": true
+  },
+  {
+    "id": "rubrik-0f1baf",
+    "position": "Data Science Researcher (Part-Time 25%)",
+    "company": "Rubrik",
+    "source": "LinkedIn",
+    "link": "https://www.linkedin.com/jobs/view/4413960676/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": "Tel Aviv-Yafo, Tel Aviv District, Israel (On-site)",
+    "date": null,
+    "description": "Team: Data Research. Time commitment: 25% (approx. 1 day a week). Location: Tel Aviv, Israel. Rubrik is seeking an advanced PhD candidate as a part-time researcher and subject matter expert. The core team builds and ships data-science algorithms for Rubrik's product line, with emphasis on Cyber Security. This specialized role tackles longer-term, high-complexity research initiatives that require deep academic rigor, focused on State-of-the-Art methodologies in LLMs and Advanced NLP. The role is designed for a hands-on researcher able to translate theory into productive working code.",
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "Current enrollment in a PhD program (Mathematics, Computer Science, Statistics, or related) focused on ML, NLP, or AI.",
+      "Previous industry experience (internship or full-time) working with noisy real-world data.",
+      "Strong proficiency in Python and modern ML frameworks (PyTorch, TensorFlow, Hugging Face).",
+      "Demonstrated experience with Transformers and LLMs beyond prompting (embeddings, vector DBs, quantization, fine-tuning).",
+      "Proven ability to manage research projects independently with minimal supervision.",
+      "Excellent ability to explain complex mathematical concepts to engineers and stakeholders (English/Hebrew)."
+    ],
+    "nice_to_have": [
+      "Track record of publications in top-tier conferences (NeurIPS, ICML, ICLR, ACL, etc.).",
+      "Background or strong interest in Cyber Security.",
+      "Experience with cloud environments (AWS/Azure/GCP) and distributed data tools (Spark/Databricks)."
+    ],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": "Applied",
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "worldquant-406887",
+    "position": "AI Software Engineer",
+    "company": "WorldQuant",
+    "source": "LinkedIn",
+    "link": "https://www.linkedin.com/jobs/view/4327105272/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": "Ramat Gan, Tel Aviv District, Israel (Hybrid)",
+    "date": null,
+    "description": "WorldQuant develops and deploys systematic financial strategies across a broad range of asset classes and global markets. The firm produces high-quality predictive signals (alphas) through its proprietary research platform to employ financial strategies focused on market inefficiencies. The role is on the AI Software Engineer team in Israel, working on data pipelines, ML systems, and production infrastructure that power alpha research.",
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "אידאומובייל-a2192e",
+    "position": "לחברה מובילה דרוש /ה data Scientist לתפקיד משמעותי בעולמות הMachine Learning והGenAI.",
+    "company": "אידאומובייל",
+    "source": "AllJobs",
+    "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8657767",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": "רמלה",
+    "date": null,
+    "description": "התפקיד כולל פיתוח פתרונות דאטה מבוססי ML מקצה לקצה - החל משלב המחקר, איסוף וניתוח מקורות דאטה, EDA, Feature Engineering ואנליזות מקדימות, ועד בחירת אלגוריתמים, פיתוח, אימון והטמעת מודלים. בנוסף, התפקיד כולל עבודה עם טכנולוגיות GenAI, מודלי LLM, Embeddings, Vector Stores ו-RAG, העלאת מודלים לסביבות Production בשיתוף צוותי ML Engineering ו-DevOps, ניטור ביצועי מודלים, זיהוי Model Drift ואימון מחדש בעת הצורך. משרה מלאה בראשון לציון, היברידית.",
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "תואר ראשון לפחות במדעי המחשב/הנדסה/מתמטיקה/סטטיסטיקה/Data Science — חובה.",
+      "לפחות שנתיים ניסיון כ-Data Scientist — חובה.",
+      "שליטה מלאה ב-Python ובספריות ML מובילות — חובה.",
+      "ניסיון בעבודה עם GenAI וטכנולוגיות LLM — יתרון משמעותי.",
+      "יכולת עבודה עצמאית, חשיבה אנליטית גבוהה ויכולת הצגת תובנות לגורמים עסקיים."
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": "Manual review",
+    "interested": null,
+    "notes": "auto-apply: no CV file",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "matrix-445ee6",
+    "position": "Data Scientist מנוסה במודלי Machine Learning",
+    "company": "matrix DnA",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/36911436/ef54f6b0/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": null,
+    "date": "2026-05-03",
+    "description": "אנחנו מחפשים Data Scientist מנוסה שיצטרף לצוות דאטה מתקדם, ויוביל פיתוח והטמעה של מודלי Machine Learning בסביבה עסקית מורכבת ודינאמית.",
+    "responsibilities": [
+      "אנחנו מחפשים Data Scientist מנוסה שיצטרף/תצטרף לצוות דאטה מתקדם, ויוביל/תוביל פיתוח והטמעה של מודלי Machine Learning בסביבה עסקית מורכבת ודינאמית. תחומי אחריות: פיתוח, אימון והטמעה של מודלי Machine Learning מתקדמים ניתוח דאטה מורכב והפקת תובנות עסקיות עבודה עם דאטה בהיקפים גדולים (Big Data) שיתוף פע"
+    ],
+    "requirements": [
+      "דרישות התפקיד: ניסיון של 3+ שנים כ-Data Scientist ניסיון מעשי בפיתוח מודלי Machine Learning (Supervised & Unsupervised) שליטה גבוהה ב- Python ניסיון עם ספריות כגון Pandas, NumPy, Scikit-learn ניסיון בעבודה עם SQL ניסיון בעבודה עם כמויות דאטה גדולות הבנה סטטיסטית ויכולת ניתוח גבוהה"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": "Manual review",
+    "interested": null,
+    "notes": "auto-apply: no CV file",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "yad2-ec5aa6",
+    "position": "AI Engineer",
+    "company": "Yad2",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/36953483/37ceada8/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": null,
+    "date": "2026-05-06",
+    "description": "Are you ready to shape the future of how millions of people in Israel buy, sell, and connect online? At yad2, we're building our first ever AI team and we're looking for you to join our AI Engineering team. The team designs, builds, and deploys AI-powered solutions across yad2's products and platforms, works hands-on with LLMs, RAG, embeddings, vector databases, and prompt engineering, and drives technical decisions around AI evaluation frameworks, monitoring, and observability.",
+    "responsibilities": [
+      "Are you ready to shape the future of how millions of people in Israel buy, sell, and exchange goods online?"
+    ],
+    "requirements": [
+      "- Strong software engineering background - solid experience with Python or Node.js, microservices, APIs, and cloud environments (AWS preferred) - Hands-on AI experience - building and deploying applications using LLMs and agentic AI"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": "Applied",
+    "interested": null,
+    "notes": "auto-apply: no CV file",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "matrix-b17148",
+    "position": "מהנדס למידת מכונה",
+    "company": "matrix DnA",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/36911854/a993a4c3/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": null,
+    "date": "2026-05-03",
+    "description": "הזדמנות להשתלב בתפקיד מקצועי ומשמעותי בעולמות הדאטה והאנליטיקה, הכולל עבודה עם Big Data, מודלים סטטיסטיים ופתרונות מבוססי Machine Learning.",
+    "responsibilities": [
+      "הזדמנות להשתלב בתפקיד מקצועי ומשמעותי בעולמות הדאטה והאנליטיקה, הכולל עבודה עם Big Data, מודלים סטטיסטיים ופתרונות מבוססי Machine Learning. תחומי אחריות: ניתוח ובניית מערכות אנליטיקה והצפת אנומליות על"
+    ],
+    "requirements": [
+      "דרישות התפקיד: ניסיון בעבודה עם נתונים בהיקפים גדולים (Big Data) ניסיון בפיתוח ויישום מודלים סטטיסטיים / אלגוריתמים שליטה ב-SQL – חובה ניסיון בעבודה עם Python – חובה ניסיון עם כלי BI – יתרון"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": "Applied",
+    "interested": null,
+    "notes": "auto-apply: no CV file",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "matrix-a703af",
+    "position": "MATRIX (מטרקיס)- מפתח מערכות זמן אמת ולמידת מכונה",
+    "company": "MATRIX",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/36980349/33c676da/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": null,
+    "date": "2026-05-10",
+    "description": null,
+    "responsibilities": [
+      "תפקיד כולל: פיתוח מערכות תוכנה חדשניות המשלבות עיבוד נתונים בזמן אמת ולמידת מכונה."
+    ],
+    "requirements": [
+      "דרישות: תואר ראשון במדעי המחשב / הנדסת תוכנה ניסיון של לפחות שנתיים בפיתוח ב־C# שליטה במבני נתונים, OOP ו־Design Patterns. רקע בעבודה עם מסדי נתונים (SQL/NoSQL) ו־REST APIs. ניסיון בפיתוח בPython"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": "",
+    "deleted": true
+  },
+  {
+    "id": "top-soft-e27c93",
+    "position": "מפתח/ת תוכנה מתחיל/ה - פיתוח AI הזדמנות חד פעמית!",
+    "company": "top-soft",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/36857210/4508467d/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": null,
+    "date": "2026-04-27",
+    "description": "אנו מחפשים להוסיף מפתח דאטה ו-AI לצוות הפיתוח שלנו. מדובר במשרת ג'וניור והזדמנות מצוינת גם למי שללא ניסיון אך סיים לימודים במדעי המחשב, הנדסת תוכנה/מחשבים, או הנדסאות, להשתלב בארגון חשוב בתחום.",
+    "responsibilities": [
+      "אנו מחפשים להוסיף מפתח דאטה ו AI לצוות הפיתוח שלנו, מדובר במשרת ג'וניור/ית ובהזדמנות מצוינת גם למי שללא ניסיון אך סיים לימודים במדעי המחשב או הנדסת תוכנה/מחשבים או הנדסאות להשתלב בארגון מצוין וחשוב בת"
+    ],
+    "requirements": [
+      "בוגר/ת לימודים בתחום התוכנה- מדעי המחשב או הנדסה"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": "Applied",
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "experis-daad70",
+    "position": "אקדמאיים/ות לתפקיד Junior AI Engineer",
+    "company": "Experis Academy",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/36860345/4508467e/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": null,
+    "date": "2026-04-27",
+    "description": null,
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": "",
+    "deleted": true
+  },
+  {
+    "id": "חסוי-a6c750",
+    "position": "ML Engineer",
+    "company": "חסוי",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/36996423/97e9d0d0/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": null,
+    "date": "2026-05-11",
+    "description": null,
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": "",
+    "deleted": true
+  },
+  {
+    "id": "elbit-936ac3",
+    "position": "Data Engineer & AI",
+    "company": "Elbit Systems",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/37015423/d4051c70/",
+    "scraped_at": "2026-05-23T20:19:46Z",
+    "location": null,
+    "date": "2026-05-13",
+    "description": null,
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": "",
+    "deleted": true
+  },
+  {
+    "id": "המרכז-dfa21b",
+    "position": "דרושים מנחי.ות פרויקט data Science בתכנית מגשימים AI באזור דרום",
+    "company": "המרכז לחינוך סייבר",
+    "source": "AllJobs",
+    "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8535318",
+    "scraped_at": "2026-05-24T06:25:30Z",
+    "location": "מספר מקומות",
+    "date": null,
+    "description": "המרכז לחינוך סייבר פועל לצמצום פערים חברתיים באמצעות פיתוח והובלה של תוכניות בתחומי המחשבים והסייבר ומדעי הנתונים, במטרה לחולל שינוי בפריפריה הגאוגרפית והחברתית בישראל. תכנית \"מגשימים AI\" עוסקת בהדרכת בני נוער (י'-י\"ב) בתחום מדעי הנתונים ופועלת בכל רחבי הארץ, עם התמקדות בפריפריה הגאוגרפית/חברתית. מהות התפקיד:",
+    "responsibilities": [
+      "- התנסות בליווי פרויקטים מרתקים בתחומי מדעי הנתונים",
+      "- העבודה הינה וירטואלית, ימים ושעות יחסית גמישים",
+      "- הכשרה מקצועית, סיפוק ועניין רב מובטחים!"
+    ],
+    "requirements": [
+      "- ידע טוב ב- data Science ו- Machine Learning",
+      "- שנה ג' לתואר ראשון או תואר שני ומעלה בהנדסת נתונים או ניסיון מקביל בתחום.",
+      "- ניסיון פרוייקטלי במודל עבודה (סיווג) בהיקף של כמה עשרות שעות לפחות."
+    ],
+    "nice_to_have": [
+      "- ניסיון בעבודת מחקר בתחום.",
+      "- סקרנות, יכולת למידה עצמית."
+    ],
+    "last_email": {
+      "thread_link": "https://mail.google.com/mail/u/0/#inbox/19dc8c1c153edfc0",
+      "classification": "Interview",
+      "date": "2026-04-26",
+      "subject": "הודעה למועמד\\ת"
+    },
+    "status_auto": "Interview",
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "המרכז-5e4fc3",
+    "position": "דרושים מנחי.ות פרויקט data Science בתכנית מגשימים AI באזור צפון",
+    "company": "המרכז לחינוך סייבר",
+    "source": "AllJobs",
+    "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8539332",
+    "scraped_at": "2026-05-24T06:25:30Z",
+    "location": "מספר מקומות",
+    "date": null,
+    "description": "המרכז לחינוך סייבר פועל לצמצום פערים חברתיים באמצעות פיתוח והובלה של תוכניות בתחומי המחשבים והסייבר ומדעי הנתונים, במטרה לחולל שינוי בפריפריה הגאוגרפית והחברתית בישראל. תכנית \"מגשימים AI\" עוסקת בהדרכת בני נוער (י'-י\"ב) בתחום מדעי הנתונים ופועלת בכל רחבי הארץ, עם",
+    "responsibilities": [
+      "- התנסות בליווי פרויקטים מרתקים בתחומי מדעי הנתונים",
+      "- העבודה הינה וירטואלית, ימים ושעות יחסית גמישים",
+      "- הכשרה מקצועית, סיפוק ועניין רב מובטחים!"
+    ],
+    "requirements": [
+      "- ידע טוב ב- data Science ו- Machine Learning",
+      "- שנה ג' לתואר ראשון או תואר שני ומעלה בהנדסת נתונים או ניסיון מקביל בתחום.",
+      "- ניסיון פרוייקטלי במודל עבודה (סיווג) בהיקף של כמה עשרות שעות לפחות."
+    ],
+    "nice_to_have": [
+      "- ניסיון בעבודת מחקר בתחום.",
+      "- סקרנות, יכולת למידה עצמית."
+    ],
+    "last_email": {
+      "thread_link": "https://mail.google.com/mail/u/0/#inbox/19dc8c1c153edfc0",
+      "classification": "Interview",
+      "date": "2026-04-26",
+      "subject": "הודעה למועמד\\ת"
+    },
+    "status_auto": "Interview",
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "פיקארו--f4adb1",
+    "position": "Machine Learning Researcher",
+    "company": "פיקארו- גיוס והשמה להייטק",
+    "source": "AllJobs",
+    "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8583076",
+    "scraped_at": "2026-05-24T06:25:30Z",
+    "location": "רעננה",
+    "date": null,
+    "description": "קרנות הגידור המצליחות בארה\"ב, המנהלת 28 מיליארד דולר עם 2000 עובדים בכל העולם, מגייסים Machine Learning Researcher לבנייה ופיתוח של צינורות נתונים ( data pipelines) ומודלים של למידת מכונה עבור נתונים טבלאיים.",
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "ניסיון של שנתיים ומעלה בסביבת עבודה עם נתונים בהיקפים גדולים (Large Scale data ).",
+      "שליטה מעמיקה ב- Python, בעיבוד נתונים ובאימון מודלים קלאסיים של Machine Learning.",
+      "ניסיון בעבודה עם אנליטיקת נתונים ( data Analytics).",
+      "תואר שני / שלישי במדעי המחשב או תחום רלוונטי."
+    ],
+    "nice_to_have": [],
+    "last_email": {
+      "thread_link": "https://mail.google.com/mail/u/0/#inbox/19dcbd27412d9f51",
+      "classification": "Other",
+      "date": "2026-04-26",
+      "subject": "I want to connect"
+    },
+    "status_auto": null,
+    "status_manual": "Manual review",
+    "interested": null,
+    "notes": "auto-apply: AllJobs login/OTP gate — needs manual submission",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "one-b8f998",
+    "position": "דרוש /ה Data Scientist",
+    "company": "One DatAI",
+    "source": "AllJobs",
+    "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8592748",
+    "scraped_at": "2026-05-24T06:25:30Z",
+    "location": "לוד ופתח תקווה",
+    "date": null,
+    "description": "ONA DatAI היא חטיבת הדאטה, האנליטיקה וה-AI המובילה בקבוצת ONE, המתמחה במתן פתרונות מקצה לקצה בעולמות הדאטה, ה- BI וה-AI. דרוש/ה data Scientist מנוסה להובלת תחומי: -חיזוי (Prediction) -מודלי Machine Learning -Generative AI -אנליטיקה מתקדמת",
+    "responsibilities": [
+      "פיתוח מודלי Machine Learning ו  AI",
+      "בניית מודלי חיזוי והמלצות",
+      "עבודה עם מידע מובנה ולא מובנה",
+      "פיתוח פתרונות מבוססי LLM ו Generative AI"
+    ],
+    "requirements": [
+      "ניסיון של 4+ שנים כData Scientist",
+      "ניסיון משמעותי בפיתוח מודלי Machine Learning",
+      "שליטה גבוהה ב- Python",
+      "ניסיון עם ספריות ML/ DL נפוצות"
+    ],
+    "nice_to_have": [
+      "ניסיון בתחום הבריאות",
+      "ניסיון עם Generative AI / LLM"
+    ],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "experis-355305",
+    "position": "אקדמאיים/ות לתפקיד Junior AI Engineer",
+    "company": "Experis Academy",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/36860345/6a080464/",
+    "scraped_at": "2026-05-24T06:25:30Z",
+    "location": null,
+    "date": "2026-04-27",
+    "description": null,
+    "responsibilities": [
+      "רוצים לעשות את הצעד הראשון אל עבר קריירה בעולם ה-AI וה-ML? אנו מחפשים בוגרי תואר ראשון מצטיינים או בעלי רקע טכנולוגי שרוצים להשתלב בתפקידי AI Engineer, ML Engineer או Data Scientist בחברות המובילות בתעש"
+    ],
+    "requirements": [
+      "בוגר/ת תואר ראשון עם ממוצע מעל 85 או רקע טכנולוגי רלוונטי. פסיכומטרי מעל 680. יתרון לתארים מתקדמים במדעים מדויקים. מוטיבציה גבוהה להשתלבות בעולם הAI והטכנולוגיה. אין צורך בניסיון קודם – אנחנו נספק לך"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": "",
+    "deleted": true
+  },
+  {
+    "id": "bjak-70f7a6",
+    "position": "Applied AI Engineer",
+    "company": "BJAK",
+    "source": "LinkedIn",
+    "link": "https://www.linkedin.com/jobs/view/4419508124/",
+    "scraped_at": "2026-05-27T17:22:44Z",
+    "location": "Tel Aviv-Yafo, Tel Aviv District, Israel (Remote)",
+    "date": null,
+    "description": null,
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "uveye-6c87c8",
+    "position": "Robotics AI Engineer",
+    "company": "UVeye",
+    "source": "LinkedIn",
+    "link": "https://www.linkedin.com/jobs/view/4419842323/",
+    "scraped_at": "2026-05-27T17:22:44Z",
+    "location": "Tel Aviv-Yafo, Tel Aviv District, Israel (Hybrid)",
+    "date": null,
+    "description": null,
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "sela-3aedd5",
+    "position": "Generative AI Engineer",
+    "company": "Sela",
+    "source": "LinkedIn",
+    "link": "https://www.linkedin.com/jobs/view/4417207446/",
+    "scraped_at": "2026-05-27T17:22:44Z",
+    "location": "Center District, Israel (Hybrid)",
+    "date": null,
+    "description": null,
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "logica-b57a63",
+    "position": "Data Scientist",
+    "company": "Logica-IT",
+    "source": "LinkedIn",
+    "link": "https://www.linkedin.com/jobs/view/4416884460/",
+    "scraped_at": "2026-05-27T17:22:44Z",
+    "location": "Lod, Center District, Israel (Hybrid)",
+    "date": null,
+    "description": null,
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "gotfriends-ea1f71",
+    "position": "AI Engineer",
+    "company": "Gotfriends",
+    "source": "LinkedIn",
+    "link": "https://www.linkedin.com/jobs/view/4415266873/",
+    "scraped_at": "2026-05-27T17:22:44Z",
+    "location": "Tel Aviv District, Israel (Hybrid)",
+    "date": null,
+    "description": null,
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "dialog-22d210",
+    "position": "AI Engineer",
+    "company": "Dialog",
+    "source": "LinkedIn",
+    "link": "https://www.linkedin.com/jobs/view/4418564614/",
+    "scraped_at": "2026-05-27T17:22:44Z",
+    "location": "Tel Aviv District, Israel (Hybrid)",
+    "date": null,
+    "description": null,
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "N/A"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "experis-3a0739",
+    "position": "אקדמאיים /ות לתפקיד Junior AI Engineer",
+    "company": "Experis Academy",
+    "source": "AllJobs",
+    "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8578261",
+    "scraped_at": "2026-05-27T17:22:44Z",
+    "location": "תל אביב יפו",
+    "date": null,
+    "description": "רוצים לעשות את הצעד הראשון אל עבר קריירה בעולם ה AI וה ML? אנחנו מחפשים בוגרי תואר ראשון מצטיינים או בעלי רקע טכנולוגי שרוצים להשתלב בתפקידי AI Engineer, ML Engineer או data Scientist בחברות המובילות בתעשייה, עם תנאים מצוינים ואפשרויות קידום רבות. מה כולל התפקיד? פיתוח פתרונות AI מקצה לקצה - משלב איסוף הנתונים ועד לפריסה ב Production. עבודה עם טכנולוגיות מתקדמות: Python, Machine Learning, Deep Learning, LLMs, Agents, RAG, ו MLOps בניית מודלים חכמים, כלי Copilot פנימיים, חיפושים מבוססי AI וצאט על מסמכים. פרויקט Hands-On המדמה את אתגרי העבודה האמיתיים ומכין אותך ליום הראשון בתפקיד. איך זה עובד?",
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "בוגר/ת תואר ראשון עם ממוצע מעל 85 או רקע טכנולוגי רלוונטי.",
+      "פסיכומטרי מעל 680."
+    ],
+    "nice_to_have": [
+      "מוטיבציה גבוהה להשתלבות בעולם ה AI והטכנולוגיה.",
+      "אין צורך בניסיון קודם - אנחנו נספק לך את כל הכלים להצלחה."
+    ],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "המרכז-65509b",
+    "position": "רכז /ת הדרכה לשנת י\"ב בתכנית מגשימים AI- משרה חלקית",
+    "company": "המרכז לחינוך סייבר",
+    "source": "AllJobs",
+    "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8662498",
+    "scraped_at": "2026-05-27T17:22:44Z",
+    "location": "מספר מקומות",
+    "date": null,
+    "description": "תכנית \"מגשימים AI\" עוסקת בהדרכת בני נוער (י'-י\"ב) בתחום מדעי הנתונים והבינה המלאכותית. מטרת התכנית היא להגדיל את מספר המתקבלות והמתקבלים ליחידות העוסקות בדאטה ובינה מלאכותית בצה\"ל וכן להרחיב את קהילת מומחי הדאטה בישראל. אחריות על: - ניהול צוות הדרכה הפרוס ארצית כולל גיוס, פיתוח, ליווי והכשרה של סגל התוכנית הטכנולוגי ברמה המקצועית והחינוכית כולל ביצוע וניהול הכשרות של מדריכים. - הטמעה של פיתוחי תוכן ותוצרי הדרכה חדשים שפותחו בתחום פיתוח למידה ויישום פרויקטים מיוחדים ופיילוטי תוכן בתוך התכנית בהתאם למדיניות ויעדי התכנית. - יישום ובקרה של גאנט ההדרכה השנתי של התכנית (שיעורים, ימי שיא, מחנה קיץ וכ",
+    "responsibilities": [
+      "N/A"
+    ],
+    "requirements": [
+      "- ידע טכנולוגי בשפת Python",
+      "- עדיפות לסטודנטים.ות/ בוגרים.ות למדעי המחשב, הנדסה, מדעים מדויקים, מדעי הנתונים או ניסיון של שנה או יותר בתחום התכנות ו/או הנתונים.",
+      "- רקע בשיטות מחקר וסטטיסטיקה.",
+      "- רקע ב Machine Learning / מדעי הנתונים."
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "קבוצת-85543e",
+    "position": "דרוש/ה מומחה/ית AI ואוטומציה",
+    "company": "קבוצת גבאי",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/37144395/0c83da8b/",
+    "scraped_at": "2026-05-27T17:22:44Z",
+    "location": null,
+    "date": "2026-05-25",
+    "description": null,
+    "responsibilities": [
+      "אנחנו מחפשים איש/אשת AI ואוטומציה עם ראש טכנולוגי, חשיבה יצירתית ויכולת ביצוע גבוהה, להצטרפות לתפקיד חדש ומשמעותי בחברת נדל״ן יזמית וקבלנית מובילה. התפקיד הינו חלק מצוות ייעודי העוסק בפיתוח, הטמעה ושי"
+    ],
+    "requirements": [
+      "דרישות התפקיד: • אוריינטציה טכנולוגית גבוהה מאוד • ניסיון בעבודה עם כלי AI • ניסיון בבניית אוטומציות / תהליכי Workflow • יכולת למידה עצמית גבוהה • חשיבה תהליכית ומערכתית • יכולת להבין צורך עסקי ולהפוך"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  },
+  {
+    "id": "experis-5d5f41",
+    "position": "אקדמאיים/ות לתפקיד Junior AI Engineer",
+    "company": "Experis Academy",
+    "source": "Drushim",
+    "link": "https://www.drushim.co.il/job/37181559/8421ee14/",
+    "scraped_at": "2026-05-27T17:22:44Z",
+    "location": null,
+    "date": "2026-05-27",
+    "description": null,
+    "responsibilities": [
+      "רוצים לעשות את הצעד הראשון אל עבר קריירה בעולם ה AI וה ML? אנחנו מחפשים בוגרי תואר ראשון מצטיינים או בעלי רקע טכנולוגי שרוצים להשתלב בתפקידי AI Engineer, ML Engineer או Data Scientist בחברות המובילות"
+    ],
+    "requirements": [
+      "• בוגר/ת תואר ראשון עם ממוצע מעל 85 או רקע טכנולוגי רלוונטי. • פסיכומטרי מעל 680. • יתרון לתארים מתקדמים במדעים מדויקים. • מוטיבציה גבוהה להשתלבות בעולם ה AI והטכנולוגיה. • אין צורך בניסיון קודם – אנח"
+    ],
+    "nice_to_have": [],
+    "last_email": null,
+    "status_auto": null,
+    "status_manual": null,
+    "interested": null,
+    "notes": "",
+    "recruiter_phone": ""
+  }
+]

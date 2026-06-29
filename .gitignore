@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# Backup / corrupt / repaired data snapshots
+*.bak
+*.bak-*
+*.corrupt
+*.corrupt-*
+*.repaired
+*.repaired-*
+jobs.json.preexisting-*
+
+# Logs and probes
+*.log
+*.runs
+_sync_probe.txt
+synctest*.txt
+.cache_bust

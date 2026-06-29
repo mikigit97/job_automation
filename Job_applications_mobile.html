@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Applications — mobile</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f6f8fb; color: #1f2733; padding: 14px; line-height: 1.45;
+}
+h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.1px; }
+.sub { font-size: 12px; color: #6b7785; margin-top: 2px; }
+.stats {
+  display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0;
+  font-size: 12px; color: #6b7785;
+}
+.stat {
+  background: #fff; border: 1px solid #e3e8ef; border-radius: 8px;
+  padding: 8px 12px; min-width: 70px;
+}
+.stat b { font-size: 16px; color: #1f2733; display: block; }
+.card-wrap {
+  background: #fff; border: 1px solid #e3e8ef; border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 12px;
+}
+.card-wrap h2 {
+  font-size: 11px; font-weight: 700; color: #6b7785; text-transform: uppercase;
+  letter-spacing: 0.6px; margin-bottom: 8px;
+}
+.bucket-toggle {
+  display: inline-flex; background: #eef1f5; border-radius: 6px;
+  overflow: hidden; margin-bottom: 8px;
+}
+.bucket-toggle button {
+  background: transparent; border: none; padding: 6px 14px; font-size: 12px;
+  color: #6b7785; cursor: pointer; font-family: inherit;
+}
+.bucket-toggle button.active { background: #4a9eff; color: #fff; }
+.chart-wrap { position: relative; height: 200px; }
+.date-row {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.date-row label { font-size: 11px; color: #6b7785; text-transform: uppercase; letter-spacing: 0.5px; }
+.date-row input[type="date"] {
+  background: #fff; border: 1px solid #d8dee7; border-radius: 5px;
+  padding: 4px 6px; font-size: 12px; font-family: inherit;
+}
+.date-row button {
+  background: #fff; border: 1px solid #d8dee7; border-radius: 5px;
+  padding: 4px 10px; font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions button {
+  background: #1f2733; color: #fff; border: none; border-radius: 6px;
+  padding: 10px 14px; font-size: 13px; font-weight: 500; cursor: pointer;
+  font-family: inherit;
+}
+.actions button.run { background: #3fb950; }
+.actions button.scrape { background: #4a9eff; }
+.actions button:disabled { opacity: 0.6; cursor: not-allowed; }
+.actions .hint { font-size: 11px; color: #6b7785; width: 100%; margin-top: 4px; }
+.jobs { display: flex; flex-direction: column; gap: 8px; }
+.job {
+  background: #fff; border: 1px solid #e3e8ef; border-radius: 8px;
+  padding: 10px 12px;
+}
+.job .title { font-weight: 600; font-size: 14px; }
+.job .company { font-size: 12px; color: #6b7785; margin-top: 1px; }
+.job .meta {
+  display: flex; gap: 8px; flex-wrap: wrap; font-size: 11px; color: #6b7785;
+  margin-top: 6px;
+}
+.pill {
+  display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 10px;
+  background: #eef1f5; color: #4b5563; border: 1px solid #d8dee7;
+}
+.pill.applied { color: #c08200; background: #fff7e0; border-color: #f3d99a; }
+.pill.interview { color: #6f3fb5; background: #f5edff; border-color: #ddd0f3; }
+.pill.offer { color: #1f7a32; background: #e8f8ec; border-color: #b9e3c0; }
+.pill.rejected { color: #b32d2d; background: #fce8e8; border-color: #f0bcbc; }
+.pill.new { color: #1f4ea1; background: #e8f1ff; border-color: #b9d0f3; }
+.pill.linkedin { color: #0a66c2; }
+.pill.alljobs { color: #6f3fb5; }
+.pill.drushim { color: #c75017; }
+.job a.link { font-size: 12px; color: #4a9eff; text-decoration: none; }
+.job a.link:hover { text-decoration: underline; }
+.empty { text-align: center; color: #6b7785; padding: 30px 0; font-size: 13px; }
+.snapshot { font-size: 10px; color: #6b7785; text-align: right; margin-top: 8px; }
+.toast {
+  position: fixed; bottom: 14px; left: 14px; right: 14px;
+  background: #1f2733; color: #fff; padding: 10px 14px; border-radius: 8px;
+  font-size: 13px; opacity: 0; transition: opacity 0.2s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<h1>Job Applications</h1>
+<div class="sub">DS / ML / AI · ≤2y experience · auto-cleaned</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="card-wrap">
+  <h2>Applications over time</h2>
+  <div class="bucket-toggle" role="tablist">
+    <button data-bucket="day" class="active">Day</button>
+    <button data-bucket="week">Week</button>
+    <button data-bucket="month">Month</button>
+  </div>
+  <div class="chart-wrap"><canvas id="chart"></canvas></div>
+</div>
+
+<div class="card-wrap">
+  <h2>Filters</h2>
+  <div class="date-row">
+    <label>From</label><input id="from" type="date">
+    <label>To</label><input id="to" type="date">
+    <button id="clear">Clear</button>
+  </div>
+</div>
+
+<div class="card-wrap">
+  <h2>Jobs (<span id="job-count">0</span>)</h2>
+  <div class="jobs" id="jobs"></div>
+  <div class="empty hidden" id="empty">No jobs match the current filter.</div>
+  <div class="snapshot">Snapshot: 2026-05-27 17:23</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const JOBS = [{"id": "manual-f95348", "position": "Data Scientist", "company": "Amazon Prime Video Sports Science", "source": "Manual", "link": "https://www.amazon.jobs/en-gb/jobs/3144807/data-scientist-prime-video-sports-science", "scraped_at": "2026-04-26T12:02:27.451Z", "date": "2026-04-26", "location": null, "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": true}, {"id": "manual-6026f5", "position": "AI Engineer", "company": "gini-apps", "source": "Manual", "link": "https://hrmony.ai/gini-apps/careers/job-offers/1000231?coref=1.11.p68_8A19", "scraped_at": "2026-04-26T12:11:25.938Z", "date": "2026-04-26", "location": null, "last_email": {"thread_link": "https://mail.google.com/mail/u/0/#inbox/19deee05643c9cf5", "classification": "Auto_ack", "date": "2026-05-03", "subject": "Welcome to Our Talent Network"}, "status_auto": "Applied", "status_manual": "Applied", "interested": null, "notes": "", "deleted": null}, {"id": "nbn-dcd221", "position": "Computer Vision Engineer", "company": "NBN Connect", "source": "LinkedIn", "link": "https://www.linkedin.com/jobs/view/4366928544/", "scraped_at": "2026-05-23T20:19:46Z", "date": null, "location": "Tel Aviv-Yafo, Tel Aviv District, Israel (On-site)", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": true}, {"id": "rubrik-0f1baf", "position": "Data Science Researcher (Part-Time 25%)", "company": "Rubrik", "source": "LinkedIn", "link": "https://www.linkedin.com/jobs/view/4413960676/", "scraped_at": "2026-05-23T20:19:46Z", "date": null, "location": "Tel Aviv-Yafo, Tel Aviv District, Israel (On-site)", "last_email": null, "status_auto": null, "status_manual": "Applied", "interested": null, "notes": "", "deleted": null}, {"id": "worldquant-406887", "position": "AI Software Engineer", "company": "WorldQuant", "source": "LinkedIn", "link": "https://www.linkedin.com/jobs/view/4327105272/", "scraped_at": "2026-05-23T20:19:46Z", "date": null, "location": "Ramat Gan, Tel Aviv District, Israel (Hybrid)", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "אידאומובייל-a2192e", "position": "לחברה מובילה דרוש /ה data Scientist לתפקיד משמעותי בעולמות הMachine Learning והGenAI.", "company": "אידאומובייל", "source": "AllJobs", "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8657767", "scraped_at": "2026-05-23T20:19:46Z", "date": null, "location": "רמלה", "last_email": null, "status_auto": null, "status_manual": "Manual review", "interested": null, "notes": "auto-apply: no CV file", "deleted": null}, {"id": "matrix-445ee6", "position": "Data Scientist מנוסה במודלי Machine Learning", "company": "matrix DnA", "source": "Drushim", "link": "https://www.drushim.co.il/job/36911436/ef54f6b0/", "scraped_at": "2026-05-23T20:19:46Z", "date": "2026-05-03", "location": null, "last_email": null, "status_auto": null, "status_manual": "Manual review", "interested": null, "notes": "auto-apply: no CV file", "deleted": null}, {"id": "yad2-ec5aa6", "position": "AI Engineer", "company": "Yad2", "source": "Drushim", "link": "https://www.drushim.co.il/job/36953483/37ceada8/", "scraped_at": "2026-05-23T20:19:46Z", "date": "2026-05-06", "location": null, "last_email": null, "status_auto": null, "status_manual": "Applied", "interested": null, "notes": "auto-apply: no CV file", "deleted": null}, {"id": "matrix-b17148", "position": "מהנדס למידת מכונה", "company": "matrix DnA", "source": "Drushim", "link": "https://www.drushim.co.il/job/36911854/a993a4c3/", "scraped_at": "2026-05-23T20:19:46Z", "date": "2026-05-03", "location": null, "last_email": null, "status_auto": null, "status_manual": "Applied", "interested": null, "notes": "auto-apply: no CV file", "deleted": null}, {"id": "matrix-a703af", "position": "MATRIX (מטרקיס)- מפתח מערכות זמן אמת ולמידת מכונה", "company": "MATRIX", "source": "Drushim", "link": "https://www.drushim.co.il/job/36980349/33c676da/", "scraped_at": "2026-05-23T20:19:46Z", "date": "2026-05-10", "location": null, "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": true}, {"id": "top-soft-e27c93", "position": "מפתח/ת תוכנה מתחיל/ה - פיתוח AI הזדמנות חד פעמית!", "company": "top-soft", "source": "Drushim", "link": "https://www.drushim.co.il/job/36857210/4508467d/", "scraped_at": "2026-05-23T20:19:46Z", "date": "2026-04-27", "location": null, "last_email": null, "status_auto": null, "status_manual": "Applied", "interested": null, "notes": "", "deleted": null}, {"id": "experis-daad70", "position": "אקדמאיים/ות לתפקיד Junior AI Engineer", "company": "Experis Academy", "source": "Drushim", "link": "https://www.drushim.co.il/job/36860345/4508467e/", "scraped_at": "2026-05-23T20:19:46Z", "date": "2026-04-27", "location": null, "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": true}, {"id": "חסוי-a6c750", "position": "ML Engineer", "company": "חסוי", "source": "Drushim", "link": "https://www.drushim.co.il/job/36996423/97e9d0d0/", "scraped_at": "2026-05-23T20:19:46Z", "date": "2026-05-11", "location": null, "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": true}, {"id": "elbit-936ac3", "position": "Data Engineer & AI", "company": "Elbit Systems", "source": "Drushim", "link": "https://www.drushim.co.il/job/37015423/d4051c70/", "scraped_at": "2026-05-23T20:19:46Z", "date": "2026-05-13", "location": null, "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": true}, {"id": "המרכז-dfa21b", "position": "דרושים מנחי.ות פרויקט data Science בתכנית מגשימים AI באזור דרום", "company": "המרכז לחינוך סייבר", "source": "AllJobs", "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8535318", "scraped_at": "2026-05-24T06:25:30Z", "date": null, "location": "מספר מקומות", "last_email": {"thread_link": "https://mail.google.com/mail/u/0/#inbox/19dc8c1c153edfc0", "classification": "Interview", "date": "2026-04-26", "subject": "הודעה למועמד\ת"}, "status_auto": "Interview", "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "המרכז-5e4fc3", "position": "דרושים מנחי.ות פרויקט data Science בתכנית מגשימים AI באזור צפון", "company": "המרכז לחינוך סייבר", "source": "AllJobs", "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8539332", "scraped_at": "2026-05-24T06:25:30Z", "date": null, "location": "מספר מקומות", "last_email": {"thread_link": "https://mail.google.com/mail/u/0/#inbox/19dc8c1c153edfc0", "classification": "Interview", "date": "2026-04-26", "subject": "הודעה למועמד\ת"}, "status_auto": "Interview", "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "פיקארו--f4adb1", "position": "Machine Learning Researcher", "company": "פיקארו- גיוס והשמה להייטק", "source": "AllJobs", "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8583076", "scraped_at": "2026-05-24T06:25:30Z", "date": null, "location": "רעננה", "last_email": {"thread_link": "https://mail.google.com/mail/u/0/#inbox/19dcbd27412d9f51", "classification": "Other", "date": "2026-04-26", "subject": "I want to connect"}, "status_auto": null, "status_manual": "Manual review", "interested": null, "notes": "auto-apply: AllJobs login/OTP gate — needs manual submission", "deleted": null}, {"id": "one-b8f998", "position": "דרוש /ה Data Scientist", "company": "One DatAI", "source": "AllJobs", "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8592748", "scraped_at": "2026-05-24T06:25:30Z", "date": null, "location": "לוד ופתח תקווה", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "experis-355305", "position": "אקדמאיים/ות לתפקיד Junior AI Engineer", "company": "Experis Academy", "source": "Drushim", "link": "https://www.drushim.co.il/job/36860345/6a080464/", "scraped_at": "2026-05-24T06:25:30Z", "date": "2026-04-27", "location": null, "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": true}, {"id": "bjak-70f7a6", "position": "Applied AI Engineer", "company": "BJAK", "source": "LinkedIn", "link": "https://www.linkedin.com/jobs/view/4419508124/", "scraped_at": "2026-05-27T17:22:44Z", "date": null, "location": "Tel Aviv-Yafo, Tel Aviv District, Israel (Remote)", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "uveye-6c87c8", "position": "Robotics AI Engineer", "company": "UVeye", "source": "LinkedIn", "link": "https://www.linkedin.com/jobs/view/4419842323/", "scraped_at": "2026-05-27T17:22:44Z", "date": null, "location": "Tel Aviv-Yafo, Tel Aviv District, Israel (Hybrid)", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "sela-3aedd5", "position": "Generative AI Engineer", "company": "Sela", "source": "LinkedIn", "link": "https://www.linkedin.com/jobs/view/4417207446/", "scraped_at": "2026-05-27T17:22:44Z", "date": null, "location": "Center District, Israel (Hybrid)", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "logica-b57a63", "position": "Data Scientist", "company": "Logica-IT", "source": "LinkedIn", "link": "https://www.linkedin.com/jobs/view/4416884460/", "scraped_at": "2026-05-27T17:22:44Z", "date": null, "location": "Lod, Center District, Israel (Hybrid)", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "gotfriends-ea1f71", "position": "AI Engineer", "company": "Gotfriends", "source": "LinkedIn", "link": "https://www.linkedin.com/jobs/view/4415266873/", "scraped_at": "2026-05-27T17:22:44Z", "date": null, "location": "Tel Aviv District, Israel (Hybrid)", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "dialog-22d210", "position": "AI Engineer", "company": "Dialog", "source": "LinkedIn", "link": "https://www.linkedin.com/jobs/view/4418564614/", "scraped_at": "2026-05-27T17:22:44Z", "date": null, "location": "Tel Aviv District, Israel (Hybrid)", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "experis-3a0739", "position": "אקדמאיים /ות לתפקיד Junior AI Engineer", "company": "Experis Academy", "source": "AllJobs", "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8578261", "scraped_at": "2026-05-27T17:22:44Z", "date": null, "location": "תל אביב יפו", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "המרכז-65509b", "position": "רכז /ת הדרכה לשנת י\"ב בתכנית מגשימים AI- משרה חלקית", "company": "המרכז לחינוך סייבר", "source": "AllJobs", "link": "https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=8662498", "scraped_at": "2026-05-27T17:22:44Z", "date": null, "location": "מספר מקומות", "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "קבוצת-85543e", "position": "דרוש/ה מומחה/ית AI ואוטומציה", "company": "קבוצת גבאי", "source": "Drushim", "link": "https://www.drushim.co.il/job/37144395/0c83da8b/", "scraped_at": "2026-05-27T17:22:44Z", "date": "2026-05-25", "location": null, "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}, {"id": "experis-5d5f41", "position": "אקדמאיים/ות לתפקיד Junior AI Engineer", "company": "Experis Academy", "source": "Drushim", "link": "https://www.drushim.co.il/job/37181559/8421ee14/", "scraped_at": "2026-05-27T17:22:44Z", "date": "2026-05-27", "location": null, "last_email": null, "status_auto": null, "status_manual": null, "interested": null, "notes": "", "deleted": null}];
+let bucket = 'day';
+
+function $(id) { return document.getElementById(id); }
+function ymd(s) { return s ? String(s).slice(0,10) : ''; }
+function effectiveStatus(j) {
+  if (j.status_manual) return j.status_manual;
+  if (j.status_auto)   return j.status_auto;
+  const cls = j.last_email?.classification;
+  if (cls === 'Auto_ack') return 'Applied';
+  if (cls === 'Interview') return 'Interview';
+  if (cls === 'Offer') return 'Offer';
+  if (cls === 'Rejected') return 'Rejected';
+  return 'New';
+}
+function eventDate(j) {
+  return ymd(j.last_email?.date) || ymd(j.scraped_at) || ymd(j.date) || '';
+}
+
+function visibleJobs() {
+  const from = $('from').value;
+  const to   = $('to').value;
+  return JOBS.filter(j => {
+    const d = eventDate(j);
+    if (from && d && d < from) return false;
+    if (to   && d && d > to)   return false;
+    if ((from || to) && !d) return false;
+    return true;
+  });
+}
+
+function renderStats() {
+  const all = visibleJobs();
+  const c = { New: 0, Applied: 0, Interview: 0, Offer: 0, Rejected: 0 };
+  for (const j of all) {
+    const s = effectiveStatus(j);
+    if (c[s] !== undefined) c[s]++;
+  }
+  $('stats').innerHTML = `
+    <div class="stat"><b>${all.length}</b>Total</div>
+    <div class="stat"><b>${c.New}</b>New</div>
+    <div class="stat"><b>${c.Applied}</b>Applied</div>
+    <div class="stat"><b>${c.Interview}</b>Interview</div>
+    <div class="stat"><b>${c.Offer}</b>Offer</div>
+  `;
+}
+
+function renderJobs() {
+  const list = visibleJobs().slice().sort((a,b) => (eventDate(b) || '').localeCompare(eventDate(a) || ''));
+  $('job-count').textContent = list.length;
+  const host = $('jobs');
+  const empty = $('empty');
+  if (list.length === 0) { host.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  host.innerHTML = list.map(j => {
+    const status = effectiveStatus(j);
+    const src = (j.source || '').toLowerCase();
+    return `
+      <div class="job">
+        <div class="title">${escape(j.position || '(no position)')}</div>
+        <div class="company">${escape(j.company || '')}</div>
+        <div class="meta">
+          <span class="pill ${src}">${escape(j.source || '—')}</span>
+          <span class="pill ${status.toLowerCase()}">${status}</span>
+          ${j.location ? `<span>📍 ${escape(j.location)}</span>` : ''}
+          ${eventDate(j) ? `<span>· ${eventDate(j)}</span>` : ''}
+          ${j.link ? `<a class="link" href="${escape(j.link)}" target="_blank" rel="noopener">Open ↗</a>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function escape(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// --- Chart -----------------------------------------------------------
+function chartDates() {
+  const out = [];
+  for (const j of visibleJobs()) {
+    const s = effectiveStatus(j);
+    if (s === 'New') continue;
+    const d = eventDate(j);
+    if (d) out.push(d);
+  }
+  return out;
+}
+function bucketKey(d, b) {
+  if (b === 'day')   return d;
+  if (b === 'month') return d.slice(0,7);
+  if (b === 'week') {
+    const dt = new Date(d + 'T00:00:00Z');
+    const day = dt.getUTCDay() || 7;
+    dt.setUTCDate(dt.getUTCDate() - (day - 1));
+    return dt.toISOString().slice(0,10);
+  }
+}
+function nextKey(k, b) {
+  if (b === 'day') {
+    const d = new Date(k + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+1);
+    return d.toISOString().slice(0,10);
+  }
+  if (b === 'week') {
+    const d = new Date(k + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+7);
+    return d.toISOString().slice(0,10);
+  }
+  if (b === 'month') {
+    const [y, m] = k.split('-').map(Number);
+    return new Date(Date.UTC(y, m, 1)).toISOString().slice(0,7);
+  }
+}
+let chart = null;
+function drawChart() {
+  const dates = chartDates();
+  const counts = new Map();
+  for (const d of dates) {
+    const k = bucketKey(d, bucket);
+    counts.set(k, (counts.get(k) || 0) + 1);
+  }
+  const keys = [...counts.keys()].sort();
+  const labels = [], data = [];
+  if (keys.length > 0) {
+    let cur = keys[0], last = keys[keys.length-1], i = 0;
+    while (cur <= last && i < 1000) {
+      labels.push(cur);
+      data.push(counts.get(cur) || 0);
+      cur = nextKey(cur, bucket);
+      i++;
+    }
+  }
+  const ctx = $('chart').getContext('2d');
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{
+      label: 'Applications',
+      data,
+      backgroundColor: 'rgba(74,158,255,0.5)',
+      borderColor: 'rgba(74,158,255,1)',
+      borderWidth: 1, borderRadius: 3,
+    }]},
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#6b7785', maxRotation: 0, autoSkip: true } },
+        y: { beginAtZero: true, ticks: { color: '#6b7785', precision: 0 } },
+      },
+    },
+  });
+}
+
+// --- Toast -----------------------------------------------------------
+let toastTimer = null;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// --- Bind events -----------------------------------------------------
+document.querySelectorAll('.bucket-toggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.bucket-toggle button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    bucket = b.dataset.bucket;
+    drawChart();
+  });
+});
+['from','to'].forEach(id =>
