@@ -29,4 +29,4 @@ B.Sc. Data Engineering, Ben-Gurion University (completed).
 B.Sc. Data Engineering, Ben-Gurion University. Completed. Grades highlight: Data Structures (97), Computational Models (99).
 
 **Long**
-B.Sc. Data Engineering at Ben-Gurion University. Completed program with strong performance in foundational CS coursework — Data Structures (97), Computational Models (99).
+B.Sc. Data Engineering at Ben-Gurion University. Completed program with strong performance in foundational CS coursework - Data Structures (97), Computational Models (99).

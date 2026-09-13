@@ -22,7 +22,7 @@ ML pipeline on earthquake sensor data: model search via cross-validation, featur
 Built an end-to-end ML pipeline on pre-event earthquake sensor data: cross-validated model search (Naïve Bayes best), feature engineering, and a dummy-baseline comparison reaching F1 0.41 / recall 0.89. An LSTM was tried but underperformed.
 
 **Long**
-Built a structured ML pipeline to evaluate model compatibility with earthquake sensor data from the 512 hours before an event. Started with minimal transformation to see which models naturally fit (Naïve Bayes), used cross-validation throughout, engineered features to improve representation, and benchmarked against a dummy classifier (F1 0.41, recall 0.89). Recorded that an LSTM, tried for the sequential structure, did not perform as hoped — a documented negative result.
+Built a structured ML pipeline to evaluate model compatibility with earthquake sensor data from the 512 hours before an event. Started with minimal transformation to see which models naturally fit (Naïve Bayes), used cross-validation throughout, engineered features to improve representation, and benchmarked against a dummy classifier (F1 0.41, recall 0.89). Recorded that an LSTM, tried for the sequential structure, did not perform as hoped - a documented negative result.
 
 ## Technologies
 Python, scikit-learn, pandas, cross-validation

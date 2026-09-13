@@ -8,21 +8,21 @@ priority: 1
 ---
 
 ## One-line summary
-M.Sc. Data Science at Ben-Gurion University, Meitar Excellence Program. Current student.
+M.Sc. Data Science at Ben-Gurion University, Meitar Excellence Program. Graduated.
 
 ## Full description
-M.Sc. Data Science at Ben-Gurion University, Meitar Excellence Program. Currently enrolled.
+M.Sc. Data Science at Ben-Gurion University, Meitar Excellence Program. Graduated.
 
 ## Notable courses / projects
-(Add as completed — each substantial project should get its own file in `research/` rather than being listed here.)
+(Add as completed - each substantial project should get its own file in `research/` rather than being listed here.)
 
 ## Variations
 
 **Short**
-M.Sc. Data Science, Ben-Gurion University (Meitar Excellence Program), current student.
+M.Sc. Data Science, Ben-Gurion University (Meitar Excellence Program), graduated.
 
 **Medium**
-M.Sc. Data Science at Ben-Gurion University. Admitted to the Meitar Excellence Program. Currently enrolled.
+M.Sc. Data Science at Ben-Gurion University. Admitted to the Meitar Excellence Program. Graduated.
 
 **Long**
 M.Sc. Data Science at Ben-Gurion University, Meitar Excellence Program. Research focus on time-series modeling and anomaly detection (see research/ entries).

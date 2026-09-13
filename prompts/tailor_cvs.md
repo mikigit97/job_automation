@@ -1,35 +1,67 @@
-# Cowork task: Tailor CVs for V rows
+# Cowork task: Fit CVs to open postings
 
-Save as a Cowork saved task. Run on demand ("Tailor CVs for Vs").
+Save as a Cowork saved task. Run on demand ("Fit CVs" / "Tailor CVs").
 
 ---
 
-Generate tailored CVs for all positions I marked with V.
+Fit a CV to every job posting in `jobs.json` that doesn't have one yet.
 
-**Step 1 — Read the tracker.**
-Open `Job_applications.xlsx` (sheet `גיליון1`). Collect all rows where:
-- `Interested` == `V`
-- `Tailored_CV_file` is empty
+**Step 1 - Build the work list.**
 
-If none match, print `No pending CVs to tailor.` and stop.
+Read `jobs.json` (a JSON array of job records). A job needs a CV when:
+- `cv/tailored/<id>.html` does not exist, and
+- the job is not already out of the running (`status_manual` or `status_auto`
+  is not `Rejected`).
 
-**Step 2 — For each matching row:**
-1. Read `positions/<Position_id>/requirements.md`
-2. Apply the `cv-tailor` skill (it autoloads — do not inline its rules here). The skill reads `cv/base_cv.html` as the visual template and `cv/experience_bank/` as the content pool.
-3. Save output to `cv/tailored/<Position_id>.html`
-4. Update the row:
-   - `Tailored_CV_file` = `cv/tailored/<Position_id>.html`
-   - `Status` = `CV_ready`
-5. The cv-tailor skill handles the log entry to `positions/<Position_id>/notes.md`.
+There is no spreadsheet and no `positions/` folder. `jobs.json` is the only
+store. Everything the fit step needs is on the job record itself.
 
-**Step 3 — Summary.**
+If nothing matches, print `No pending CVs to fit.` and stop.
+
+**Step 2 - For each job in the work list, apply the `cv-tailor` skill** (it
+autoloads - do not inline its rules here). Use **Part A - Fit a CV to a
+posting**, not Part B: this is the per-job path, and it works from
+`cv/variants/` and `jobs.json` directly. It does not touch
+`cv/experience_bank/`.
+
+The skill picks the closest of the three durable variants
+(`cv/variants/ai-llm-engineer.html`, `data-scientist-ml.html`,
+`software-engineer-ml.html`), copies it to `cv/tailored/<id>.html`, rewords
+only the header subtitle and Professional Summary where the posting's own
+terms already match something the variant claims, renders `cv/tailored/<id>.pdf`
+via `cv/render_pdf.py`, and logs to `cv/tailored/<id>.notes.md`.
+
+Because fitting reuses an already-verified document instead of rebuilding
+from the experience bank, this is cheap - there's no need to batch or ask
+before running the full work list, unlike a from-scratch tailor run would be.
+
+**If a posting's core ask isn't covered by any of the three variants** (e.g.
+computer vision, robotics - the skill's Hard Rule 6), skip that job, note it
+in the summary below, and do not force a mismatched variant onto it.
+
+Do not write a `Tailored_CV_file` field or change `status_manual`. The
+presence of `cv/tailored/<id>.html` is the record that a CV exists - that is
+what Step 1 checks, and what `build_html.py` cleans up when a posting drops
+out of the tracker.
+
+**Step 3 - Summary.**
+
 Print:
 ```
-Tailored N CVs:
-- <Position_id>: matched [top 3 must_have], included [N bank entries]
+Fitted N CVs:
+- <id> (<company> - <position>): used <variant>, reworded [summary / subtitle / neither]
 ...
-Open each .html in Chrome and click "Download as PDF" to produce the printable version.
+Skipped M (already have a CV).
+Could not fit K (no matching variant): <id> (<company> - <position>), ...
 ```
 
-**If `cv/base_cv.html` is missing**, stop and tell me.
-**If `cv/experience_bank/` is empty or has no matching tags**, still produce the CV using whatever bank entries exist — do not invent content.
+**If `cv/variants/` is missing or empty**, stop and tell me - the variants
+need to be built first (see the skill's Part B).
+
+## Lifecycle note
+
+Fitted CVs in `cv/tailored/` are disposable outputs, not archives. When a
+posting is rejected or ages out of the tracker, `build_html.py` deletes the
+matching `cv/tailored/<id>.*` files on its next run. `cv/variants/` is never
+touched by that cleanup - it changes only through the skill's Part B
+(maintaining the variants), not as a side effect of fitting jobs.

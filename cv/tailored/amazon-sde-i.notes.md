@@ -1,4 +1,4 @@
-# CV tailored — Amazon SDE-I (Software Development Engineer I)
+# CV tailored - Amazon SDE-I (Software Development Engineer I)
 
 Tailored 2026-06-29. Output: `cv/tailored/amazon-sde-i.html`
 
@@ -9,16 +9,16 @@ not in the deprecated `positions/<id>/` folder referenced by the skill template.
 - **General-purpose programming language** (Java / Python / C++ / C# / Go / Rust / TypeScript)
   → Python, Java, C# surfaced in Programming skills + projects.
 - **Data structure usage / basic algorithm development / OOD**
-  → Wikipedia search engine (inverted index, BM25, PageRank); multithreaded client–server
+  → Wikipedia search engine (inverted index, BM25, PageRank); multithreaded client-server
     game (object-oriented design); Education (Data Structures 97, Computational Models 99).
 - **Degree** (enrolled in or graduated within 24 months, CS/CE/Data Science/Info Systems)
   → M.Sc. Data Science (current) + B.Sc. Data Engineering (completed).
 
 ## Preferred qualifications hit
-- Databases (SQL) → SQL/Streamlit data apps with index design + measured 50–80× speedup.
+- Databases (SQL) → SQL/Streamlit data apps with index design + measured 50-80× speedup.
 - Version control → Git across all projects.
 - Debugging / troubleshooting complex systems → Samsung support; (bank also has S7comm parser).
-- Distributed / scalable systems → concurrent client–server game; forecasting framework on a cluster.
+- Distributed / scalable systems → concurrent client-server game; forecasting framework on a cluster.
 - GenAI / AI productivity → LLMs & LoRA fine-tuning listed in ML skills (bank: LoRA, LLM projects).
 - Communication / customer focus → Samsung technical support; Professional Summary framing.
 

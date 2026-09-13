@@ -8,7 +8,7 @@ priority: 3
 ---
 
 ## One-line summary
-Private math tutoring, 2016–2018.
+Private math tutoring, 2016-2018.
 
 ## Full description
 Private tutoring in mathematics and analytical problem solving.
@@ -16,10 +16,10 @@ Private tutoring in mathematics and analytical problem solving.
 ## Variations
 
 **Short**
-Private math tutoring (2016–2018).
+Private math tutoring (2016-2018).
 
 **Medium**
-Private tutoring in mathematics and analytical problem solving, 2016–2018.
+Private tutoring in mathematics and analytical problem solving, 2016-2018.
 
 **Long**
 Private tutoring in mathematics and analytical problem solving.

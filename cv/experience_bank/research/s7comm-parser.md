@@ -22,7 +22,7 @@ Python CLI that decodes typed sensor values from S7comm PLC network captures via
 Built a Python command-line tool that parses S7comm PLC/HMI packets from PCAP captures and decodes raw DB memory into typed sensor values using an address map. Matches request/response PDUs, handles bit/byte offsets, and supports time and packet filters with CSV output.
 
 **Long**
-Developed a command-line tool for industrial-control-system analysis that parses S7comm protocol packets from PCAP/PCAPNG captures and decodes raw PLC memory into typed sensor values (Float/Boolean/Long/Word/Int/Byte) from a sensor-to-address mapping. It invokes tshark to read captures, links request and response PDUs by reference, computes byte and bit offsets inside DB blocks, and offers time-range and packet-count filtering with configurable tshark paths and CSV output — turning raw industrial traffic into labeled sensor time series.
+Developed a command-line tool for industrial-control-system analysis that parses S7comm protocol packets from PCAP/PCAPNG captures and decodes raw PLC memory into typed sensor values (Float/Boolean/Long/Word/Int/Byte) from a sensor-to-address mapping. It invokes tshark to read captures, links request and response PDUs by reference, computes byte and bit offsets inside DB blocks, and offers time-range and packet-count filtering with configurable tshark paths and CSV output - turning raw industrial traffic into labeled sensor time series.
 
 ## Technologies
 Python, pandas, tshark / Wireshark, argparse CLI, S7comm protocol, PCAP

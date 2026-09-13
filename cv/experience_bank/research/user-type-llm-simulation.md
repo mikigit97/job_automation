@@ -11,7 +11,7 @@ priority: 3
 Simulation framework that uses LLM agents plus real MovieLens data to generate labeled user-behavior data for recommendation-system research.
 
 ## Full description
-Built a multi-phase simulation framework that models three user behavioral types (herder, truthful, strategic) interacting with a movie recommender, using LLM-based agents (via Ollama) and real MovieLens-32M preferences. Generated 300 labeled users across two screen configurations, orchestrated as a five-phase pipeline driven by config files and environment-variable toggles, with SLURM batch jobs for the heavy phases — producing labeled interaction data for a downstream user-type classifier.
+Built a multi-phase simulation framework that models three user behavioral types (herder, truthful, strategic) interacting with a movie recommender, using LLM-based agents (via Ollama) and real MovieLens-32M preferences. Generated 300 labeled users across two screen configurations, orchestrated as a five-phase pipeline driven by config files and environment-variable toggles, with SLURM batch jobs for the heavy phases - producing labeled interaction data for a downstream user-type classifier.
 
 ## Variations
 

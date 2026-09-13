@@ -11,7 +11,7 @@ priority: 2
 LoRA continued pre-training plus supervised fine-tuning of a small LLM (Qwen2.5-0.5B) on the Sherlock Holmes canon, evaluated by perplexity and F1.
 
 ## Full description
-Adapted a small pre-trained causal language model (Qwen2.5-0.5B) to the Sherlock Holmes canon using LoRA — a parameter-efficient fine-tuning method that trains small adapter matrices instead of all the model's weights. Part 1 ran LoRA continued pre-training and showed in-domain perplexity dropped (18.05 → 16.54). Part 2 added supervised fine-tuning on question→answer pairs, lifting exact-match F1/accuracy from 0.011 to 0.291 on a held-out entity-answer test set. Ran 10+ ablation experiments and GPU training jobs on the BGU SLURM cluster (RTX 3090/4090), with each stage documented in plain English.
+Adapted a small pre-trained causal language model (Qwen2.5-0.5B) to the Sherlock Holmes canon using LoRA - a parameter-efficient fine-tuning method that trains small adapter matrices instead of all the model's weights. Part 1 ran LoRA continued pre-training and showed in-domain perplexity dropped (18.05 → 16.54). Part 2 added supervised fine-tuning on question→answer pairs, lifting exact-match F1/accuracy from 0.011 to 0.291 on a held-out entity-answer test set. Ran 10+ ablation experiments and GPU training jobs on the BGU SLURM cluster (RTX 3090/4090), with each stage documented in plain English.
 
 ## Variations
 

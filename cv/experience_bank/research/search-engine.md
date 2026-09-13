@@ -11,7 +11,7 @@ priority: 1
 Built a search engine over a full Wikipedia dump using an inverted index, BM25 ranking, and PageRank, with query-time precomputation for speed.
 
 ## Full description
-Built an end-to-end search engine over a full Wikipedia dump. Parsed and preprocessed the corpus (stopword removal, Porter stemming) into an inverted index with posting lists, ranked results with BM25 — precomputing per-posting BM25 contributions to cut query-time cost — and combined them with PageRank scores derived from the corpus's anchor-text link structure. Evaluated with a blended Precision@5 / F1@30 metric and analyzed speed/quality trade-offs (a title-only index returned in ~0.6 s while adding the body index reached higher quality at ~6.5 s).
+Built an end-to-end search engine over a full Wikipedia dump. Parsed and preprocessed the corpus (stopword removal, Porter stemming) into an inverted index with posting lists, ranked results with BM25 - precomputing per-posting BM25 contributions to cut query-time cost - and combined them with PageRank scores derived from the corpus's anchor-text link structure. Evaluated with a blended Precision@5 / F1@30 metric and analyzed speed/quality trade-offs (a title-only index returned in ~0.6 s while adding the body index reached higher quality at ~6.5 s).
 
 ## Variations
 

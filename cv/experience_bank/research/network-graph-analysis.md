@@ -8,7 +8,7 @@ priority: 2
 ---
 
 ## One-line summary
-Graph analysis over real networks — centralities, node2vec embeddings, directed link prediction, and out-of-core processing of a 429M-edge graph.
+Graph analysis over real networks - centralities, node2vec embeddings, directed link prediction, and out-of-core processing of a 429M-edge graph.
 
 ## Full description
 Analyzed several real-world networks (movie co-appearance graphs, Reddit hyperlinks, Enron email, and a 429M-edge chess interaction network). Computed degree distributions, centralities, PageRank, and graph-level embeddings; trained node2vec embeddings for directed link prediction; and detected Enron managers by combining centrality measures with a locally hosted LLM (Ollama running qwen2.5:14b) queried over HTTP. Handled out-of-memory scale by stream-aggregating the 6.85 GB / 429M-edge chess file with polars into a compact weighted edge list instead of loading it whole.

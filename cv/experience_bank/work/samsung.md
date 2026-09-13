@@ -16,7 +16,7 @@ Resolved technical issues under time pressure and communicated solutions clearly
 ## Variations
 
 **Short**
-Samsung technical support — diagnosed and communicated fixes under time pressure.
+Samsung technical support - diagnosed and communicated fixes under time pressure.
 
 **Medium**
 Resolved technical issues at Samsung under time pressure, translating technical solutions into clear customer communication.

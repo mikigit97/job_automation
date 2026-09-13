@@ -27,6 +27,7 @@ ROOT = Path(__file__).parent
 JOBS_JSON = ROOT / "jobs.json"
 HTML_OUT = ROOT / "Job_applications.html"
 MOBILE_HTML_OUT = ROOT / "Job_applications_mobile.html"
+TAILORED_DIR = ROOT / "cv" / "tailored"
 
 # Fields the mobile artifact's JS actually reads. Anything else (description,
 # responsibilities, requirements, recruiter_phone, …) is stripped to keep the
@@ -87,6 +88,31 @@ DS_TITLE_RE = re.compile(
     r")",
 )
 
+# Teaching / mentoring roles. These pass the DS title gate (they say "data
+# Science" or "AI"), but they are instruction jobs, not engineering ones, and
+# there is no CV variant for them - so they are filtered out entirely.
+# Note: matches Hebrew "הדרכה" (instruction), never English "training", which
+# in these postings almost always means model training.
+TEACHING_TITLE_RE = re.compile(
+    r"(?ix)"
+    r"(?:"
+    r"  mentor"
+    r"| instructor"
+    r"| lecturer"
+    r"| teaching"
+    r"| curriculum"
+    r"| (?:^|[^a-z])tutor"
+    r"| מנח[הים]"
+    r"| מנחי"
+    r"| מנחות"
+    r"| הדרכה"
+    r"| מדריכ"
+    r"| מרצה"
+    r"| חונ[ךכ]"
+    r"| מור[הים]\b"
+    r")",
+)
+
 SENIOR_TITLE_RE = re.compile(
     r"(?i)\b(?:senior|sr\.?|lead|principal|staff|manager|director|head\s+of|architect|vp)\b"
     r"|בכיר|מנהל|ראש\s*צוות",
@@ -138,6 +164,8 @@ def is_relevant(job: dict) -> tuple[bool, str]:
         return False, f"non-DS title: {pos!r}"
     if SENIOR_TITLE_RE.search(pos):
         return False, "senior/lead role"
+    if TEACHING_TITLE_RE.search(pos):
+        return False, "teaching/mentoring role"
     yrs = years_required(job)
     if yrs is not None and yrs > 2:
         return False, f"requires {yrs}+ years"
@@ -198,6 +226,29 @@ def auto_maintain(jobs: list[dict]) -> tuple[list[dict], list[dict]]:
                 continue
         kept.append(j)
     return kept, dropped
+
+
+def purge_tailored(dropped: list[dict]) -> list[str]:
+    """Delete tailored CVs belonging to postings that just left jobs.json.
+
+    A tailored CV is only useful while its posting is live in the tracker.
+    When auto_maintain drops an entry (rejected, stale, or irrelevant), the
+    matching files under cv/tailored/ are orphaned, so they are removed here.
+    Files are matched on the job id prefix, so hand-named files in that folder
+    (e.g. "Mickael Zeitoun - CV.pdf") are never touched.
+    """
+    removed: list[str] = []
+    if not TAILORED_DIR.is_dir():
+        return removed
+    for job in dropped:
+        jid = str(job.get("id") or "").strip()
+        if not jid:
+            continue
+        for path in sorted(TAILORED_DIR.glob(f"{jid}.*")):
+            if path.is_file():
+                path.unlink()
+                removed.append(path.name)
+    return removed
 
 
 HTML_TEMPLATE = r"""<!DOCTYPE html>
@@ -2071,24 +2122,11 @@ def main() -> int:
         for r, n in reasons.most_common():
             print(f"  - {r}: {n}")
         print(f"Backup written: {backup.name}")
-    else:
-        print("Auto-maintenance: nothing to drop.")
-
-    build_time = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
-    html = HTML_TEMPLATE.replace(
-        "__JOBS_JSON__", json.dumps(kept, ensure_ascii=False)
-    ).replace(
-        "__BUILD_TIME__", build_time
-    )
-    HTML_OUT.write_text(html, encoding="utf-8")
-    print(f"Wrote {HTML_OUT} ({len(html):,} chars, {len(kept)} jobs)")
-    rebuild_mobile_html(kept)
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
-: {backup.name}")
+        purged = purge_tailored(dropped)
+        if purged:
+            print(f"Removed {len(purged)} orphaned tailored CV file(s):")
+            for name in purged:
+                print(f"  - cv/tailored/{name}")
     else:
         print("Auto-maintenance: nothing to drop.")
 

@@ -7,7 +7,7 @@ priority: 3
 
 ## Entries
 
-- **PERACH mentoring** — academic mentoring program
+- **PERACH mentoring** - academic mentoring program
 - **Special-needs youth support**
 - **Holocaust survivor visits**
 

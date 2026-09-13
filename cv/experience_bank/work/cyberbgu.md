@@ -1,6 +1,6 @@
 ---
 category: work
-title: CyberBGU – AI Integration Research
+title: CyberBGU - AI Integration Research
 org: CyberBGU (in partnership with RAD)
 dates: 2024-now
 tags: [research, ml, ics, industrial-control-systems, networking, optimization, ai-integration]

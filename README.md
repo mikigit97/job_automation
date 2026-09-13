@@ -17,7 +17,8 @@ This makes the folder persistent across sessions with its own memory.
 
 ### 3. Confirm your CV inputs
 - `cv/base_cv.html` — your visual template. Already in place. Edit the HTML directly if you want to change the layout, colors, or section order.
-- `cv/experience_bank/` — your content pool. Seeded with everything already in your HTML CV. Expand it over time with projects, coursework, and roles that don't fit on the one-pager. See `cv/experience_bank/README.md` for the file format.
+- `cv/experience_bank/` — your content pool. Seeded with everything already in your HTML CV. Expand it over time with projects, coursework, and roles that don't fit on the one-pager. See `cv/experience_bank/README.md` for the file format. Only read when building or updating a variant (below) — not on every application.
+- `cv/variants/` — three durable base CVs (`ai-llm-engineer.html`, `data-scientist-ml.html`, `software-engineer-ml.html`), one per role archetype seen in your postings. Each application fits the closest variant rather than rebuilding a CV from the bank each time. See "The CV variants" below.
 
 ### 4. Enable the `cv-tailor` skill
 In Claude Settings → Skills, point at `skills/cv-tailor/SKILL.md` or enable it project-scoped. Cowork autoloads it when tailoring runs.
@@ -32,7 +33,7 @@ In Claude Settings → Skills, point at `skills/cv-tailor/SKILL.md` or enable it
 ### 6. Install the Cowork scheduled tasks
 - Cowork → Scheduled Tasks → New
   - Task A: Paste `prompts/gmail_sync.md`, schedule Sun–Thu 16:05
-  - Task B: Paste `prompts/tailor_cvs.md` as a saved on-demand task named "Tailor CVs for Vs"
+  - Task B: Paste `prompts/tailor_cvs.md` as a saved on-demand task named "Fit CVs"
 
 ## Daily workflow
 
@@ -64,8 +65,10 @@ once and pick this folder — the HTML will persist every edit (status,
 👍/👎, notes, recruiter phone, plus any field overrides) directly into
 `jobs.json` via a field-scoped patch (read → modify only your fields for
 that id → write). Scraper and Gmail-sync fields on every entry are
-preserved unless you explicitly override them. Mark 👍 on jobs you want
-to pursue. The **Delete** button on each card removes the entire entry
+preserved unless you explicitly override them. The 👍/👎 marks and
+`Interested` field are for your own tracking — CV fitting (below) runs
+against every posting that isn't `Rejected`, not just the ones you've
+marked. The **Delete** button on each card removes the entire entry
 from `jobs.json`.
 
 **Editing fields on a card.** Click **Edit** on any card to open a form
@@ -80,8 +83,13 @@ same form blank. Fill at least position or company; the entry gets a
 fresh `id` of the form `manual-<6-char-hex>` and lands in `jobs.json`.
 
 **After reviewing**
-In Cowork, say "Tailor CVs for Vs" (or click the saved task). Wait. New
-`.html` files appear in `cv/tailored/`.
+In Cowork, say "Fit CVs" (or click the saved task). For every posting that
+doesn't have one yet, it picks the closest of the three variants in
+`cv/variants/`, copies it to `cv/tailored/<id>.html`, rewords only the
+subtitle and summary where the posting's own terms already match something
+the variant claims, and renders `cv/tailored/<id>.pdf`. This is cheap
+compared to a from-scratch tailor, so it runs against the whole backlog each
+time rather than needing you to flag which ones first.
 
 **When you want to apply**
 1. Open the tailored `.html` in Chrome → click "Download as PDF".
@@ -114,6 +122,30 @@ The Gmail sync task **never downgrades** — once a position reaches
 `Interview`, an `Auto_ack` reply can't push it back to `Applied`. Priority
 high-to-low: `Offer > Interview > Rejected > Applied > (empty)`.
 
+## The CV variants — how fitting works
+
+Tailoring used to rebuild a CV from the experience bank for every single job.
+That got expensive (~20K tokens each) and pointless — most postings in one
+role family want the same subset of the bank. Now there are three durable
+base CVs in `cv/variants/`:
+
+- `ai-llm-engineer.html` — LLM/GenAI/NLP-leaning postings
+- `data-scientist-ml.html` — general ML research: time-series, anomaly
+  detection, recsys (the default when it's a close call)
+- `software-engineer-ml.html` — systems/software-engineering-leaning postings
+
+**Applying to a job** ("Fit CVs") picks the closest variant, copies it to
+`cv/tailored/<id>.html`, and only reworks the header subtitle and Professional
+Summary — never the Research/Experience section selection. See
+`skills/cv-tailor/SKILL.md`, Part A.
+
+**Updating the variants** is separate and rare — only when the experience
+bank gains something that changes what an archetype should lead with, or
+when two or more postings reveal a fourth archetype the current three don't
+cover (a single unusual posting is not a reason to add one). That's Part B of
+the same skill, and it's the only path that touches `experience_bank/` or
+rebuilds a Research/Experience section from scratch.
+
 ## The experience bank — how to maintain it
 
 The bank lives at `cv/experience_bank/` and is structured one `.md` per item:
@@ -128,14 +160,14 @@ Each file has YAML frontmatter with `tags`, `priority`, and a body with Short/Me
 
 **When you add new experience:** copy the closest existing file, edit frontmatter + body, save with a descriptive filename. No index to update — `cv-tailor` scans frontmatter at runtime.
 
-**Why a bank?** The base HTML can only fit ~3 research projects + ~3 work entries on one page. The bank can hold everything you've done, and the tailoring step picks the best subset for each specific job. A job that wants recsys experience gets your Deezer project; a job that wants anomaly detection gets your autoencoder project; the same base template holds both.
+**Why a bank?** The base HTML can only fit ~3 research projects + ~3 work entries on one page. The bank can hold everything you've done; building or updating a variant (Part B above) picks the best subset for that archetype. A role family that wants recsys experience gets the Deezer project in its variant; one that wants anomaly detection gets the autoencoder project in its variant; the same base template holds both.
 
 ## Token-efficiency notes
 
 - Scraping uses Chrome's **accessibility tree** and page-state JSON, not screenshots (~2–4K tokens/position vs 30K+).
 - Gmail sync uses the MCP connector with snippets only, not full bodies.
 - All postings live in a single `jobs.json`; no per-position markdown files.
-- CV tailoring uses a `grep`-based tag index to load only ~10 bank files per run, not all of them.
+- CV fitting reuses an already-built variant instead of re-scanning the bank per job — a few thousand tokens per posting, not ~20K. Building/updating a variant still uses a `grep`-based tag index to load only ~10 bank files, but that only happens on the rare Part B runs.
 
 ## File reference
 
@@ -145,9 +177,10 @@ Each file has YAML frontmatter with `tags`, `priority`, and a body with Short/Me
 | `jobs.json` | Single store for everything about a posting: scraped fields, Gmail-derived fields, and your edits. Writers share this one file and only touch their own fields per entry. |
 | `build_html.py` | Reads `jobs.json` → writes `Job_applications.html` (data embedded inline). |
 | `cv/base_cv.html` | Visual template (fonts, layout, print button) |
-| `cv/experience_bank/**/*.md` | Content pool — one entry per file |
-| `cv/tailored/<id>.html` | Generated tailored CV |
-| `skills/cv-tailor/SKILL.md` | Tailoring rules |
+| `cv/experience_bank/**/*.md` | Content pool — one entry per file. Read only when building/updating a variant. |
+| `cv/variants/<archetype>.html` + `.pdf` | Durable base CVs, one per role archetype |
+| `cv/tailored/<id>.html` + `.pdf` + `.notes.md` | CV fitted to one posting from its closest variant. Deleted automatically when the posting drops out of `jobs.json`. |
+| `skills/cv-tailor/SKILL.md` | Fitting rules (Part A) and variant-maintenance rules (Part B) |
 | `prompts/scrape.md` | Chrome shortcut text for LinkedIn / AllJobs / Drushim (writes directly to `jobs.json`) |
 | `prompts/scrape-bigtech.md` | Chrome shortcut text for NVIDIA / Google / Apple / Amazon careers pages (writes to `jobs.json`) |
 | `prompts/gmail_sync.md` | Cowork scheduled-task text (updates `last_email` / `status_auto`) |
@@ -214,9 +247,9 @@ the field in the Edit dialog and re-save — the next scrape will repopulate it.
 
 **Gmail sync misclassifies** — edit the Step 5 rubric in `prompts/gmail_sync.md`.
 
-**Tailored CV contains a claim I didn't make** — the skill forbids this. Tell Cowork: "audit the tailored CV at `cv/tailored/<id>.html` against `cv/experience_bank/` — flag any claim not sourced from a bank file." Then add the missing entry to the bank OR remove the claim.
+**Tailored CV contains a claim I didn't make** — this should be rare, since fitting only rewords an already-audited variant. Tell Cowork: "audit `cv/tailored/<id>.html` against `cv/experience_bank/` — flag any claim not sourced from a bank file." If the claim came from the variant itself, fix the variant (`cv/variants/<archetype>.html`), not just the one tailored file — otherwise the same false claim will reappear in the next posting that uses that variant.
 
-**Tailored CV overflows one page** — drop `priority: 3` entries from the bank first, then `priority: 2`. You can also lower priority of specific items in their frontmatter.
+**Fitted CV overflows one page** — this means the Step 2 reword pushed it over; per the skill's Hard Rule 4, undo the reword and re-render rather than trimming content in `cv/tailored/`. If the *variant itself* overflows, that's a Part B problem: drop `priority: 3` entries from the bank first, then `priority: 2`, and rebuild the variant.
 
 **Duplicate postings in tracker** — the scraper dedups by `link`. If boards rewrite URLs, add `Company + Position` as a secondary dedup key in `prompts/scrape.md`.
 

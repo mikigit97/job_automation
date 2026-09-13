@@ -22,7 +22,7 @@ Full-stack C#/ASP.NET event web app with a JS/HTML/CSS frontend, built collabora
 Built a full-stack event-planning web app in C# on ASP.NET with a JavaScript/HTML/CSS frontend, working in a Git-based team across server logic and UI.
 
 **Long**
-Collaborated in a multi-developer team on a full-stack event-planning web application, written in C# on the ASP.NET framework with a JavaScript, HTML, and CSS frontend. Contributed to both back-end server logic and the browser interface, using Git and Visual Studio and following the full software-development lifecycle — experience with a compiled, statically-typed language (C#) and end-to-end web development.
+Collaborated in a multi-developer team on a full-stack event-planning web application, written in C# on the ASP.NET framework with a JavaScript, HTML, and CSS frontend. Contributed to both back-end server logic and the browser interface, using Git and Visual Studio and following the full software-development lifecycle - experience with a compiled, statically-typed language (C#) and end-to-end web development.
 
 ## Technologies
 C#, ASP.NET, JavaScript, HTML, CSS, Git, Visual Studio

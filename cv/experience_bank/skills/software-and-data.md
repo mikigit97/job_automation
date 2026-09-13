@@ -11,7 +11,7 @@ Git, Docker, Linux, SQL/SQLite, ORMs (PonyORM), database schema & index design, 
 
 ## Evidence
 
-- **Sockets (TCP/UDP), multithreading, locks/events/barriers, concurrency** → multithreaded client–server game (see `research/multithreaded-trivia-game.md`)
+- **Sockets (TCP/UDP), multithreading, locks/events/barriers, concurrency** → multithreaded client-server game (see `research/multithreaded-trivia-game.md`)
 - **SQL/SQLite, schema design, indexing, `EXPLAIN QUERY PLAN`, query optimization** → SQL data apps (see `research/sql-data-apps.md`)
 - **ORM (PonyORM), Streamlit, deployment** → SQL data apps (see `research/sql-data-apps.md`)
 - **REST/HTTP APIs** → live Wikipedia API (SQL apps) and local LLM over HTTP (see `research/network-graph-analysis.md`)

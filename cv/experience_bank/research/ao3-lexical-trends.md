@@ -22,7 +22,7 @@ Interrupted-time-series data-mining study on AO3 with a polite, resumable, unit-
 Built a resumable, rate-limited web-scraping and analysis pipeline to test whether fanfiction vocabulary richness and upload rates shifted after generative AI arrived. Used length-robust metrics (MTLD/MATTR), unit-tested the metric math, and ran an interrupted-time-series with sensitivity checks.
 
 **Long**
-Designed a reproducible data-mining study asking whether human fanfiction's vocabulary richness and upload cadence changed when generative-AI writing tools went public, modeled as an interrupted time series. Engineered a polite, resumable scraper (5-second pauses, honest User-Agent, backoff, local caching) with separate metadata and full-text streams and stratified sampling, computed length-robust lexical-diversity measures (MTLD, MATTR, HD-D), unit-tested the math, and analyzed the series with confound sensitivity checks — all in a modular, config-driven `src/` package.
+Designed a reproducible data-mining study asking whether human fanfiction's vocabulary richness and upload cadence changed when generative-AI writing tools went public, modeled as an interrupted time series. Engineered a polite, resumable scraper (5-second pauses, honest User-Agent, backoff, local caching) with separate metadata and full-text streams and stratified sampling, computed length-robust lexical-diversity measures (MTLD, MATTR, HD-D), unit-tested the math, and analyzed the series with confound sensitivity checks - all in a modular, config-driven `src/` package.
 
 ## Technologies
 Python, lexicalrichness, requests with caching/backoff, unit tests, pandas, statistics

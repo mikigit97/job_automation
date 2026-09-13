@@ -6,7 +6,7 @@ It is the **source of truth** Claude draws from when tailoring your CV.
 ## How it works
 
 - `base_cv.html` (one level up) defines the **visual template** (fonts, layout, colors, section order).
-- This folder defines the **content pool** — every project, role, skill, and achievement, each in its own `.md` file.
+- This folder defines the **content pool** - every project, role, skill, and achievement, each in its own `.md` file.
 - When tailoring for a job, Claude reads the job's requirements, picks the most relevant entries from this bank, and produces a new HTML that reuses the base template's styling with swapped-in content.
 
 The bank can (and should) hold **more** than fits on one page. The tailoring step decides what makes the cut for each specific job.
@@ -64,19 +64,19 @@ grep -rh "^tags:" . | sort -u
 
 1. Copy the closest existing file in the right subfolder.
 2. Edit the frontmatter and body.
-3. No manifest file to update — the tailoring step scans frontmatter at runtime.
+3. No manifest file to update - the tailoring step scans frontmatter at runtime.
 
 ## What to put where
 
-- `research/` — research projects, papers, theses, course capstones that are substantial
-- `work/` — paid or unpaid roles at organizations
-- `education/` — degrees (summary) + notable courses/grades/projects that wouldn't fit under research
-- `skills/` — skill categories with **evidence** (never a bare list — always "I did X with this")
-- `military/` — IDF service details
-- `volunteering/` — unpaid community work
+- `research/` - research projects, papers, theses, course capstones that are substantial
+- `work/` - paid or unpaid roles at organizations
+- `education/` - degrees (summary) + notable courses/grades/projects that wouldn't fit under research
+- `skills/` - skill categories with **evidence** (never a bare list - always "I did X with this")
+- `military/` - IDF service details
+- `volunteering/` - unpaid community work
 
 ## What not to do
 
-- Do not add content you haven't actually done. The tailoring skill will verify against this bank — inventing here defeats the whole safety design.
+- Do not add content you haven't actually done. The tailoring skill will verify against this bank - inventing here defeats the whole safety design.
 - Do not store skills as a flat list. Each skill entry should describe how and where you used it.
 - Do not duplicate content across files. Each achievement lives in exactly one file.
