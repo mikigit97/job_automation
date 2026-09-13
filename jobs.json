@@ -26,13 +26,29 @@
     ],
     "nice_to_have": [],
     "last_email": null,
-    "status_auto": null,
-    "status_manual": null,
-    "interested": null,
     "notes": "",
     "recruiter_phone": "",
     "description": null,
-    "deleted": true
+    "status": "archived",
+    "status_source": "user",
+    "status_changed_at": "2026-04-26T12:02:27.451Z",
+    "applied_at": null,
+    "applied_via": null,
+    "followed_up_at": null,
+    "archive_reason": "skipped",
+    "cv_variant": null,
+    "cv_tailored_at": null,
+    "extraction_attempts": 0,
+    "extraction_ok": true,
+    "years_min": null,
+    "dedup_key": "amazon prime video sports science|data scientist",
+    "agency": false,
+    "fit": {
+      "tier": "ok",
+      "reasons": [
+        "ds"
+      ]
+    }
   },
   {
     "id": "manual-6026f5",
@@ -72,11 +88,29 @@
       "date": "2026-05-03",
       "subject": "Welcome to Our Talent Network"
     },
-    "status_auto": "Applied",
-    "status_manual": "Applied",
-    "interested": null,
-    "notes": "",
+    "notes": "[migration] applied_at backfilled",
     "recruiter_phone": "",
-    "description": "An AI startup is looking for an AI Engineer to join its core team at an advanced and critical pre-launch stage. This role focuses on building AI capabilities at the heart of the product, working on LLM-based systems and AI agents, and collaborating closely with product and data teams."
+    "description": "An AI startup is looking for an AI Engineer to join its core team at an advanced and critical pre-launch stage. This role focuses on building AI capabilities at the heart of the product, working on LLM-based systems and AI agents, and collaborating closely with product and data teams.",
+    "status": "applied",
+    "status_source": "user",
+    "status_changed_at": "2026-04-26T12:11:25.938Z",
+    "applied_at": "2026-05-03",
+    "applied_via": "manual",
+    "followed_up_at": null,
+    "archive_reason": null,
+    "cv_variant": null,
+    "cv_tailored_at": null,
+    "extraction_attempts": 0,
+    "extraction_ok": true,
+    "years_min": 3,
+    "dedup_key": "gini apps|ai engineer",
+    "agency": false,
+    "fit": {
+      "tier": "weak",
+      "reasons": [
+        "ai",
+        "3y"
+      ]
+    }
   }
 ]

@@ -28,9 +28,15 @@ for before starting:
 | Renderer | `cv/render_pdf.py` | Converts the HTML to a verified one-page A4 PDF. Always use it; never hand-roll the render. |
 
 `cv/tailored/<id>.*` files are disposable: `build_html.py` deletes them
-automatically when the matching posting drops out of `jobs.json` (rejected,
-stale, or filtered). `cv/variants/*` and `cv/experience_bank/*` are never
-touched by that cleanup.
+automatically when the matching posting's `status` becomes `archived` or
+`rejected`. `cv/variants/*` and `cv/experience_bank/*` are never touched by
+that cleanup.
+
+**Record the fit on the job.** After Step 5 succeeds, patch two fields on the
+matching `jobs.json` record (field-scoped read-modify-write; touch nothing
+else): `cv_variant` = the variant name used (e.g. `data-scientist-ml`) and
+`cv_tailored_at` = ISO timestamp. Then run `python build_html.py` so the
+dashboard shows the `CV: <variant> ↗` link on that row.
 
 ## Hard rules
 
@@ -48,7 +54,9 @@ touched by that cleanup.
 ### Step 1 — Pick the closest variant
 
 Read the job's `position`, `requirements`, `responsibilities`, `description`
-from `jobs.json`. Score against the three archetypes:
+from `jobs.json`. If `extraction_ok` is `false` the posting text was not
+captured: pick the variant from the title alone and say so in the notes file
+(the dashboard already flags the row as unverified). Score against the three archetypes:
 
 | Variant | Leads with |
 |---|---|
@@ -94,6 +102,7 @@ Append to `cv/tailored/<id>.notes.md`:
 - Summary reword: [before -> after], or "none"
 - Skills reorder: [cluster: before -> after], or "none"
 - Output: cv/tailored/<id>.html
+- jobs.json patched: cv_variant=<variant>, cv_tailored_at=<ISO-date>
 ```
 
 ### Step 4 — Self-audit

@@ -1,0 +1,142 @@
+{
+  "schema_version": 2,
+
+  "_comment": "Thresholds and pattern lists for build_html.py and the scraper prompts. Regex fragments are joined with | and compiled case-insensitively. Edit here, not in code.",
+
+  "years_max": 3,
+  "expiry_days": 21,
+  "followup_days": 7,
+  "backups_to_keep": 20,
+  "drop_anonymous_alljobs": true,
+
+  "role_families": {
+    "ai": [
+      "\\bAI\\b",
+      "artificial\\s*intelligence",
+      "\\bLLM",
+      "gen[\\s-]?ai\\b",
+      "generative",
+      "\\bNLP\\b",
+      "natural\\s*language",
+      "בינה\\s*מלאכותית"
+    ],
+    "ds": [
+      "data\\s*scien",
+      "machine\\s*learn",
+      "\\bML\\b",
+      "deep\\s*learn",
+      "applied\\s*scien",
+      "research\\s*(?:scien|engineer)",
+      "computer\\s*vision",
+      "MLOps",
+      "algorithm",
+      "מדען\\s*נתונים",
+      "מדעני\\s*נתונים",
+      "למידת\\s*מכונה",
+      "אלגוריתמ"
+    ]
+  },
+
+  "junior_titles": [
+    "\\bjunior\\b",
+    "\\bjr\\.?\\b",
+    "entry[\\s-]*level",
+    "\\bentry\\b",
+    "\\bgraduate\\b",
+    "\\bnew\\s*grad",
+    "ג'וניור",
+    "ג׳וניור",
+    "מתחיל",
+    "בוגר",
+    "ללא\\s*ניסיון"
+  ],
+
+  "seniority_titles": [
+    "\\bsenior\\b",
+    "\\bsr\\.?\\b",
+    "\\blead\\b",
+    "\\bprincipal\\b",
+    "\\bstaff\\b",
+    "\\bmanager\\b",
+    "\\bdirector\\b",
+    "\\bhead\\s+of\\b",
+    "\\barchitect\\b",
+    "\\bvp\\b",
+    "\\bchief\\b",
+    "בכיר",
+    "מנהל",
+    "ראש\\s*צוות",
+    "מוביל\\S*\\s*(?:צוות|קבוצה|טכנולוגי)",
+    "team\\s*lead",
+    "tech\\s*lead"
+  ],
+
+  "teaching_titles": [
+    "mentor",
+    "instructor",
+    "lecturer",
+    "teaching",
+    "curriculum",
+    "\\btutor",
+    "מנח[הים]",
+    "מנחי",
+    "מנחות",
+    "הדרכה",
+    "מדריכ",
+    "מרצה",
+    "חונ[ךכ]",
+    "מור[הים]\\b"
+  ],
+
+  "clinical_titles": [
+    "\\bnurse",
+    "\\bphysician",
+    "\\bpharmacist",
+    "\\btherapist",
+    "\\bradiolog",
+    "\\bsurgeon",
+    "lab(?:oratory)?\\s*tech",
+    "clinical\\s*(?:trial|coordinator|research\\s*associate|specialist|monitor)",
+    "אחות",
+    "אח/ות",
+    "רופא",
+    "רוקח",
+    "טכנאי\\s*מעבדה",
+    "פיזיותרפ"
+  ],
+
+  "anonymous_companies": [
+    "חברה חסויה",
+    "חברה דיסקרטית",
+    "confidential"
+  ],
+
+  "agencies": [
+    "experis",
+    "gotfriends",
+    "got friends",
+    "פיקארו",
+    "picaro",
+    "top-soft",
+    "top soft",
+    "topsoft",
+    "manpower",
+    "ethosia",
+    "sqlink",
+    "sq link",
+    "john bryce",
+    "comblack",
+    "nisha"
+  ],
+  "agency_patterns": [
+    "השמה",
+    "גיוס",
+    "recruit",
+    "staffing",
+    "placement",
+    "headhunt",
+    "outsourc"
+  ],
+
+  "variants": ["ai-llm-engineer", "data-scientist-ml", "software-engineer-ml"]
+}

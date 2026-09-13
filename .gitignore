@@ -2,7 +2,10 @@
 __pycache__/
 *.pyc
 
-# Backup / corrupt / repaired data snapshots
+# Automatic jobs.json backups (build_html.py keeps the newest 20)
+backups/
+
+# Legacy backup / corrupt / repaired snapshots
 *.bak
 *.bak-*
 *.corrupt
@@ -10,6 +13,7 @@ __pycache__/
 *.repaired
 *.repaired-*
 jobs.json.preexisting-*
+jobs.json.tmp
 
 # Logs and probes
 *.log
@@ -17,3 +21,7 @@ jobs.json.preexisting-*
 _sync_probe.txt
 synctest*.txt
 .cache_bust
+
+# Fitted CV render artifacts
+cv/tailored/*.preview.png
+cv/variants/*.preview.png

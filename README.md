@@ -1,269 +1,178 @@
-# Job Application Automation — README
+# Job Application Automation — README (schema v2)
 
-Semi-automated pipeline for Data Science / AI Engineer roles in Israel.
-You review and apply; Claude scrapes, tailors, and tracks replies.
+Semi-automated pipeline for junior AI / ML / Data Science roles in Israel.
+Claude scrapes, tracks replies, and fits CVs; you review and apply.
+
+> **Migration status.** The data model, `build_html.py`, the dashboard, the
+> CV-fit prompt and the skill are on schema v2. `prompts/scrape.md`,
+> `scrape-bigtech.md`, `gmail_sync.md` and `auto_apply.md` still write the v1
+> fields (`status_manual`, `status_auto`, `interested`, `deleted`) — they are
+> rewritten in Batch 2. Until then, `build_html.py` migrates any v1 record it
+> finds on every run, so the pipeline keeps working either way.
 
 ## One-time setup
 
 ### 1. Prerequisites
-- Claude Pro or higher (for Cowork + Chrome extension)
-- Cowork desktop app installed (Windows or Mac)
-- Claude for Chrome extension installed in Chrome or Edge
+- Claude Pro or higher (Cowork + Chrome extension)
+- Cowork desktop app (Windows or Mac)
+- Claude for Chrome extension in Chrome or Edge
 - Gmail connector enabled (Settings → Connectors → Google Workspace)
+- Python 3.10+ on your machine. For CV rendering: `pip install weasyprint pymupdf --break-system-packages`
 
 ### 2. Open this folder as a Cowork project
-Cowork → New Project → point at this folder (`job_automation/`).
-This makes the folder persistent across sessions with its own memory.
+Cowork → New Project → `C:\Users\user\OneDrive\PycharmProjects\job_automation`.
 
-### 3. Confirm your CV inputs
-- `cv/base_cv.html` — your visual template. Already in place. Edit the HTML directly if you want to change the layout, colors, or section order.
-- `cv/experience_bank/` — your content pool. Seeded with everything already in your HTML CV. Expand it over time with projects, coursework, and roles that don't fit on the one-pager. See `cv/experience_bank/README.md` for the file format. Only read when building or updating a variant (below) — not on every application.
-- `cv/variants/` — three durable base CVs (`ai-llm-engineer.html`, `data-scientist-ml.html`, `software-engineer-ml.html`), one per role archetype seen in your postings. Each application fits the closest variant rather than rebuilding a CV from the bank each time. See "The CV variants" below.
+### 3. CV inputs
+- `cv/base_cv.html` — visual template. Edit directly to change layout/colors.
+- `cv/experience_bank/` — content pool, one `.md` per item. Read only when building or updating a variant, not per application. See `cv/experience_bank/README.md`.
+- `cv/variants/` — three durable base CVs (`ai-llm-engineer`, `data-scientist-ml`, `software-engineer-ml`), one per role archetype. Each application fits the closest variant. See "The CV variants" below.
 
 ### 4. Enable the `cv-tailor` skill
-In Claude Settings → Skills, point at `skills/cv-tailor/SKILL.md` or enable it project-scoped. Cowork autoloads it when tailoring runs.
+Claude Settings → Skills → point at `skills/cv-tailor/SKILL.md` (or install `cv-tailor.plugin`).
 
-### 5. Install the Chrome shortcuts
-- Open the Chrome extension side panel
-- Paste the contents of `prompts/scrape.md` as a new shortcut named `/scrape-jobs`
-- Click the clock icon → schedule for Sun–Thu at 08:00 and 16:00
-- Paste the contents of `prompts/scrape-bigtech.md` as a second shortcut named `/scrape-bigtech`
-- Click the clock icon → schedule for Sun–Thu at 16:00 only (big-tech careers pages update slowly, so once a day is enough)
+### 5. Chrome shortcuts
+- Extension side panel → new shortcut `/scrape-jobs` from `prompts/scrape.md` → schedule Sun–Thu 08:00 and 16:00.
+- Second shortcut `/scrape-bigtech` from `prompts/scrape-bigtech.md` → schedule **Sunday 16:00 only** (weekly).
 
-### 6. Install the Cowork scheduled tasks
-- Cowork → Scheduled Tasks → New
-  - Task A: Paste `prompts/gmail_sync.md`, schedule Sun–Thu 16:05
-  - Task B: Paste `prompts/tailor_cvs.md` as a saved on-demand task named "Fit CVs"
+### 6. Cowork tasks
+- Scheduled: `prompts/gmail_sync.md`, Sun–Thu 16:05.
+- Saved (on demand): `prompts/tailor_cvs.md` as "Fit CVs"; `prompts/auto_apply.md` as "Auto-apply" (AllJobs/Drushim only, never scheduled).
 
 ## Daily workflow
 
-The tracker is a single HTML file (`Job_applications.html`) backed by
-`jobs.json`. `jobs.json` is the only store for postings — there is no
-`positions/` folder and no xlsx.
+Everything lives in one file, `jobs.json`. The dashboard `Job_applications.html` is generated from it by `build_html.py` and writes your edits back into it.
 
-**08:00 & 16:00 — automatic (`/scrape-jobs`)**
-Chrome shortcut runs. It reads `jobs.json`, scrapes LinkedIn / AllJobs /
-Drushim, appends new postings (dedup by `link`), enriches existing ones,
-saves `jobs.json`, and runs `python build_html.py` to rebuild the tracker.
+**08:00 & 16:00 — `/scrape-jobs`** (needs Chrome open with the extension). Reads `jobs.json`, scrapes LinkedIn (five queries, window since the last run) / AllJobs / Drushim, appends new postings with `status: new`, re-visits postings whose requirements weren't captured, then runs `python build_html.py`.
 
-**16:00 — automatic (`/scrape-bigtech`)**
-Second Chrome shortcut runs once a day. It scrapes the Israel careers pages
-of NVIDIA, Google, Apple, and Amazon, then does the same dedup-and-rebuild
-against `jobs.json`. Big-tech pages change slowly, so one pass per day is
-enough.
+**Sunday 16:00 — `/scrape-bigtech`.** Same, for NVIDIA / Google / Apple / Amazon Israel pages. Weekly, because junior openings there are rare.
 
-**After scraping, the tracker refreshes itself.** If you ever want to rebuild
-manually:
+**16:05 — Gmail sync.** For every applied/interview posting, finds the latest matching thread, classifies it, and moves the status forward (never backward). Rebuilds the dashboard.
 
-```
-python build_html.py   # jobs.json → Job_applications.html (embeds data inline)
-```
+**Whenever you sit down — the dashboard.** Open `Job_applications.html` in Chrome. Click **Link folder…** once and pick this project folder; from then on every click is saved into `jobs.json` (field-scoped: only your fields on the record you touched are written).
 
-**Review in the tracker**
-Open `Job_applications.html` in Chrome or Edge. Click **"Link folder…"**
-once and pick this folder — the HTML will persist every edit (status,
-👍/👎, notes, recruiter phone, plus any field overrides) directly into
-`jobs.json` via a field-scoped patch (read → modify only your fields for
-that id → write). Scraper and Gmail-sync fields on every entry are
-preserved unless you explicitly override them. The 👍/👎 marks and
-`Interested` field are for your own tracking — CV fitting (below) runs
-against every posting that isn't `Rejected`, not just the ones you've
-marked. The **Delete** button on each card removes the entire entry
-from `jobs.json`.
+- **Inbox** — new postings, sorted by fit (● green strong, blue ok, amber weak). `[Applied]` moves it to Applied and stamps `applied_at`. `[Skip]` archives it.
+- **Applied** — oldest first, so the ones needing a follow-up are on top. `[Followed up]` stamps `followed_up_at`; `[Interview]` / `[Rejected]` move it on.
+- **Interviews** — shows the last email; `[Offer]` / `[Rejected]`.
+- **Done** — offers and rejections. Archived postings are hidden unless you toggle "Show archived" (⋯ menu). `[Reopen]` sends anything back to Inbox.
+- **Attention strip** (top, only when non-empty): unverified postings (requirements not captured) and applications older than 7 days with no reply.
+- Click a row to expand: full posting text, fit reasons, notes, phone, last email, a status dropdown for overrides, and **Edit** (position, company, link, location, phone, agency flag, requirements, notes). Pasting requirements into an unverified posting clears the flag.
+- **+ Add** creates a manual entry (`id` = `manual-…`). Manual entries never expire and are never auto-archived.
+- **⋯ menu**: Import JSON, Export JSON, Reset local cache, Show archived.
 
-**Editing fields on a card.** Click **Edit** on any card to open a form
-where you can change position, company, source, link, location,
-recruiter phone, requirements, responsibilities, nice-to-have, and
-notes. Edits to scraper-owned fields are stored as user overrides in
-`jobs.json` for that entry; future scraper runs only fill empty fields,
-so your edits stick.
+**Before applying — "Fit CVs".** Say it in Cowork or click the saved task. For every `new`/`applied` posting without a CV it picks the closest variant, rewords only the subtitle and summary, renders `cv/tailored/<id>.pdf`, and links it on the row (`CV: <variant> ↗`). Cheap per posting, so it runs on the whole backlog.
 
-**Adding a job manually.** The **+ New job** button at the top opens the
-same form blank. Fill at least position or company; the entry gets a
-fresh `id` of the form `manual-<6-char-hex>` and lands in `jobs.json`.
+**Applying.** Open the posting (↗), attach `cv/tailored/<id>.pdf`, submit, click `[Applied]`. Or run "Auto-apply" for AllJobs/Drushim postings (it fits a CV first if needed and records `applied_via: auto`).
 
-**After reviewing**
-In Cowork, say "Fit CVs" (or click the saved task). For every posting that
-doesn't have one yet, it picks the closest of the three variants in
-`cv/variants/`, copies it to `cv/tailored/<id>.html`, rewords only the
-subtitle and summary where the posting's own terms already match something
-the variant claims, and renders `cv/tailored/<id>.pdf`. This is cheap
-compared to a from-scratch tailor, so it runs against the whole backlog each
-time rather than needing you to flag which ones first.
+## The status pipeline
 
-**When you want to apply**
-1. Open the tailored `.html` in Chrome → click "Download as PDF".
-2. Open the job link. Apply manually (or use Chrome's form-fill shortcut, optional).
-3. In the tracker: set `Status` → `Applied`.
+One field, `status`: `new → applied → interview → offer | rejected`, plus `archived` for postings you skipped or that expired. `status_source` says who last set it (`user`, `gmail`, `auto_apply`, `scraper`, `maintain`); `status_changed_at` says when.
 
-**16:05 — automatic**
-Gmail sync scans replies. For each non-final position (not `Rejected` /
-`Offer`), it searches the Gmail connector for the most recent thread from
-that company. If the thread link differs from what's stored in
-`jobs.json[i].last_email.thread_link`, it classifies the new email, updates
-`last_email` and `status_auto` inside the job record, and rebuilds the HTML.
+Rules every writer follows:
+- Moving to `applied` sets `applied_at` (once) and `applied_via` (`manual` / `auto`).
+- Gmail sync only moves forward (`offer > interview > rejected > applied`) and only when the email is newer than `status_changed_at`.
+- Your click in the dashboard always wins — it writes `status_source: user`.
+- **Nothing is ever deleted from `jobs.json`.** Archived and rejected records stay (hidden) — they are the memory that stops the scraper from re-adding the same posting. `build_html.py` archives, never removes.
 
-## Tracker status — how it's derived
+`build_html.py` maintenance on every run (status `new` only, never `manual-` ids):
+- older than `expiry_days` (21) → `archived / expired`
+- fails a relevance gate (title outside AI/DS families, senior, teaching, clinical title, anonymous AllJobs company, needs more than `years_max` (3) years and the requirements were captured) → `archived / irrelevant`, reason in notes
+- same normalized company|position as another live posting → `archived / duplicate`
 
-Each card shows one effective status computed in this priority order:
+Fitted CVs (`cv/tailored/<id>.*`) are deleted when a posting becomes archived or rejected. `cv/variants/` is never touched.
 
-1. **Manual override** (`status_manual` in the state file) — what you set in
-   the HTML.
-2. **`status_auto`** — written by the Gmail sync task based on the most
-   recent email.
-3. **Last-email classification** — if `status_auto` isn't set but
-   `last_email.classification` is, the HTML maps it
-   (`Auto_ack` → `Applied`, `Interview` → `Interview`, etc.).
-4. **`New`** — default when nothing else applies.
-
-Status values: `New`, `Applied`, `Interview`, `Offer`, `Rejected`, `Archived`.
-
-The Gmail sync task **never downgrades** — once a position reaches
-`Interview`, an `Auto_ack` reply can't push it back to `Applied`. Priority
-high-to-low: `Offer > Interview > Rejected > Applied > (empty)`.
-
-## The CV variants — how fitting works
-
-Tailoring used to rebuild a CV from the experience bank for every single job.
-That got expensive (~20K tokens each) and pointless — most postings in one
-role family want the same subset of the bank. Now there are three durable
-base CVs in `cv/variants/`:
-
-- `ai-llm-engineer.html` — LLM/GenAI/NLP-leaning postings
-- `data-scientist-ml.html` — general ML research: time-series, anomaly
-  detection, recsys (the default when it's a close call)
-- `software-engineer-ml.html` — systems/software-engineering-leaning postings
-
-**Applying to a job** ("Fit CVs") picks the closest variant, copies it to
-`cv/tailored/<id>.html`, and only reworks the header subtitle and Professional
-Summary — never the Research/Experience section selection. See
-`skills/cv-tailor/SKILL.md`, Part A.
-
-**Updating the variants** is separate and rare — only when the experience
-bank gains something that changes what an archetype should lead with, or
-when two or more postings reveal a fourth archetype the current three don't
-cover (a single unusual posting is not a reason to add one). That's Part B of
-the same skill, and it's the only path that touches `experience_bank/` or
-rebuilds a Research/Experience section from scratch.
-
-## The experience bank — how to maintain it
-
-The bank lives at `cv/experience_bank/` and is structured one `.md` per item:
-- `research/` — research projects, theses, capstones
-- `work/` — paid/unpaid roles
-- `education/` — degrees (high-level)
-- `skills/` — skill clusters with evidence
-- `military/` — IDF service
-- `volunteering/` — community work
-
-Each file has YAML frontmatter with `tags`, `priority`, and a body with Short/Medium/Long phrasing variations. See `cv/experience_bank/README.md` for the format and tag conventions.
-
-**When you add new experience:** copy the closest existing file, edit frontmatter + body, save with a descriptive filename. No index to update — `cv-tailor` scans frontmatter at runtime.
-
-**Why a bank?** The base HTML can only fit ~3 research projects + ~3 work entries on one page. The bank can hold everything you've done; building or updating a variant (Part B above) picks the best subset for that archetype. A role family that wants recsys experience gets the Deezer project in its variant; one that wants anomaly detection gets the autoencoder project in its variant; the same base template holds both.
-
-## Token-efficiency notes
-
-- Scraping uses Chrome's **accessibility tree** and page-state JSON, not screenshots (~2–4K tokens/position vs 30K+).
-- Gmail sync uses the MCP connector with snippets only, not full bodies.
-- All postings live in a single `jobs.json`; no per-position markdown files.
-- CV fitting reuses an already-built variant instead of re-scanning the bank per job — a few thousand tokens per posting, not ~20K. Building/updating a variant still uses a `grep`-based tag index to load only ~10 bank files, but that only happens on the rare Part B runs.
-
-## File reference
-
-| Path | Purpose |
-|---|---|
-| `Job_applications.html` | Interactive tracker (open in Chrome/Edge). Rebuilt by `build_html.py`. |
-| `jobs.json` | Single store for everything about a posting: scraped fields, Gmail-derived fields, and your edits. Writers share this one file and only touch their own fields per entry. |
-| `build_html.py` | Reads `jobs.json` → writes `Job_applications.html` (data embedded inline). |
-| `cv/base_cv.html` | Visual template (fonts, layout, print button) |
-| `cv/experience_bank/**/*.md` | Content pool — one entry per file. Read only when building/updating a variant. |
-| `cv/variants/<archetype>.html` + `.pdf` | Durable base CVs, one per role archetype |
-| `cv/tailored/<id>.html` + `.pdf` + `.notes.md` | CV fitted to one posting from its closest variant. Deleted automatically when the posting drops out of `jobs.json`. |
-| `skills/cv-tailor/SKILL.md` | Fitting rules (Part A) and variant-maintenance rules (Part B) |
-| `prompts/scrape.md` | Chrome shortcut text for LinkedIn / AllJobs / Drushim (writes directly to `jobs.json`) |
-| `prompts/scrape-bigtech.md` | Chrome shortcut text for NVIDIA / Google / Apple / Amazon careers pages (writes to `jobs.json`) |
-| `prompts/gmail_sync.md` | Cowork scheduled-task text (updates `last_email` / `status_auto`) |
-| `prompts/tailor_cvs.md` | Cowork on-demand task text |
-
-## `jobs.json` entry schema
+## `jobs.json` record (schema v2)
 
 ```json
 {
-  "id": "company-abc123",
-  "position": "Data Scientist",
-  "company": "Acme Corp",
-  "source": "LinkedIn",
-  "link": "https://...",
-  "scraped_at": "2026-04-22T15:58:39Z",
-  "location": "Tel Aviv",
-  "date": "2026-04-21",
-  "description": "We're hiring a Data Scientist to join our analytics team…",
-  "responsibilities": ["..."],
-  "requirements": ["..."],
-  "nice_to_have": [],
-  "last_email": {
-    "thread_link": "https://mail.google.com/mail/u/0/#inbox/<id>",
-    "classification": "Interview",
-    "date": "2026-04-22",
-    "subject": "Re: your application for Data Scientist"
-  },
-  "status_auto": "Interview",
-  "status_manual": null,
-  "interested": "yes",
-  "notes": "Recruiter is Dana",
-  "recruiter_phone": "+972 50-123-4567"
+  "id": "acme-1a2b3c",
+  "position": "Data Scientist", "company": "Acme", "source": "LinkedIn", "link": "https://…",
+  "scraped_at": "2026-09-10T08:00:00Z", "location": "Tel Aviv", "date": "2026-09-09",
+  "description": "…", "responsibilities": ["…"], "requirements": ["…"], "nice_to_have": [],
+  "extraction_ok": true, "extraction_attempts": 1, "years_min": 2, "agency": false,
+  "dedup_key": "acme|data scientist",
+
+  "status": "applied", "status_source": "user", "status_changed_at": "2026-09-11T10:00:00Z",
+  "applied_at": "2026-09-11T10:00:00Z", "applied_via": "manual", "followed_up_at": null,
+  "archive_reason": null,
+  "last_email": { "thread_link": "https://mail.google.com/…", "classification": "Auto_ack", "date": "2026-09-11", "subject": "…" },
+  "cv_variant": "data-scientist-ml", "cv_tailored_at": "2026-09-11T09:40:00Z",
+  "notes": "", "recruiter_phone": "",
+  "fit": { "tier": "ok", "reasons": ["ds", "2y"] }
 }
 ```
 
-Every field except `id` / `position` / `company` / `source` / `link` /
-`scraped_at` can be `null` (or `""` for `notes` / `recruiter_phone`).
+`years_min` is the lower bound of the stated experience range (`"3-5 years"` → 3; `"שנתיים"` → 2), counted only when the word experience/ניסיון is nearby. `extraction_ok` is true when ≥2 requirement lines or ≥200 characters of description were captured. `fit` is recomputed at build time and is a sort order, not a judgment.
 
 ## Who writes what
 
 | Field | Writer |
 |---|---|
-| `id`, `position`, `company`, `source`, `link`, `scraped_at`, `location`, `date`, `description`, `responsibilities`, `requirements`, `nice_to_have` | Scraper (you can also override any of these from the HTML) |
-| `last_email`, `status_auto` | Gmail sync |
-| `status_manual`, `interested`, `notes`, `recruiter_phone` | You, via the HTML tracker |
+| `id`, `position`, `company`, `source`, `link`, `scraped_at`, `location`, `date`, `description`, `responsibilities`, `requirements`, `nice_to_have`, `extraction_ok`, `extraction_attempts` | Scraper (you can override any of these from Edit) |
+| `last_email`; `status` → forward moves only | Gmail sync |
+| `status`, `status_source`, `status_changed_at`, `applied_at`, `applied_via`, `followed_up_at`, `archive_reason`, `notes`, `recruiter_phone`, `agency` | You, via the dashboard (also auto-apply for its own applications) |
+| `cv_variant`, `cv_tailored_at` | Fit CVs |
+| `years_min`, `dedup_key`, `fit`, `agency` (initial value only) | `build_html.py` |
 
-Each writer does a read-modify-write on `jobs.json` and patches only its own
-fields per entry — the other fields on every entry survive. This is how three
-separate processes share one file without a merge step.
+Every writer does a field-scoped read-modify-write: it patches only its own fields on the records it touched.
 
-`status_manual` always wins over `status_auto`. Clearing it via the **Auto**
-toggle hands control back to the email-derived status.
+## Configuration — `config.json`
 
-**Overrides on scraper-owned fields.** When you edit a scraper field
-(position, requirements, link, …) from the HTML, the new value is written
-straight into `jobs.json[i].<field>` in place of the scraper value. The
-scraper's dedup pass only fills empty/null fields, so your edit survives
-future scraper runs. To hand control back to the scraper for a field, clear
-the field in the Edit dialog and re-save — the next scrape will repopulate it.
+All thresholds and pattern lists live there: `years_max`, `expiry_days`, `followup_days`, `drop_anonymous_alljobs`, the role-family / junior / seniority / teaching / clinical title patterns, the agency list. Edit the JSON, re-run `python build_html.py`. Test the gates with `python tests/test_gates.py`.
+
+## The CV variants — how fitting works
+
+Three durable base CVs in `cv/variants/`:
+- `ai-llm-engineer.html` — LLM/GenAI/NLP postings
+- `data-scientist-ml.html` — general ML: time-series, anomaly detection, recsys (default when it's a close call)
+- `software-engineer-ml.html` — kept for manual entries only; software titles are not scraped
+
+**Fitting** ("Fit CVs") picks the closest variant, copies it to `cv/tailored/<id>.html`, and reworks only the header subtitle and Professional Summary — never the Research/Experience selection. `skills/cv-tailor/SKILL.md`, Part A.
+
+**Updating a variant** is rare: only when the bank gains something that changes what an archetype should lead with, or when two or more postings reveal an archetype the three don't cover. Part B of the same skill; the only path that reads `experience_bank/`.
+
+## File reference
+
+| Path | Purpose |
+|---|---|
+| `jobs.json` | The store. Schema v2 above. |
+| `build_html.py` | Migrate → derive → maintain → fit → render. `--dry-run` reports without writing. |
+| `config.json` | Thresholds and pattern lists. |
+| `templates/dashboard.html` | Dashboard template (data is embedded at build time). |
+| `Job_applications.html` | Generated dashboard. Open in Chrome. |
+| `state.json` | `last_scrape_at` per source; written by the scraper, drives the LinkedIn time window. |
+| `backups/` | Automatic `jobs.json` backups before migration/maintenance writes (newest 20 kept; gitignored). |
+| `tests/test_gates.py` | Unit tests for gates, parsers, migration (`python tests/test_gates.py`). |
+| `prompts/scrape.md`, `scrape-bigtech.md` | Chrome shortcut text. |
+| `prompts/gmail_sync.md` | Cowork scheduled task. |
+| `prompts/tailor_cvs.md`, `prompts/auto_apply.md` | Cowork on-demand tasks. |
+| `skills/cv-tailor/SKILL.md` | Fitting rules (Part A), variant maintenance (Part B). |
+| `cv/base_cv.html`, `cv/render_pdf.py` | Template and the one-page PDF renderer. |
+| `cv/experience_bank/**/*.md` | Content pool. |
+| `cv/variants/<archetype>.html` + `.pdf` | Durable base CVs. |
+| `cv/tailored/<id>.html` + `.pdf` + `.notes.md` | CV fitted to one posting. Auto-deleted when it's archived/rejected. |
 
 ## Troubleshooting
 
-**Scraper wrote 0 rows** — likely hit a login or CAPTCHA. Open the board manually, log in, re-run.
+**Scraper wrote 0 rows** — login or CAPTCHA. Open the board manually, log in, re-run.
 
-**Gmail sync misclassifies** — edit the Step 5 rubric in `prompts/gmail_sync.md`.
+**A posting shows "unverified"** — the scraper could not read its requirements. Click Edit and paste them (one per line); the flag clears and the years gate applies. The next scrape also retries automatically (max 2 attempts).
 
-**Tailored CV contains a claim I didn't make** — this should be rare, since fitting only rewords an already-audited variant. Tell Cowork: "audit `cv/tailored/<id>.html` against `cv/experience_bank/` — flag any claim not sourced from a bank file." If the claim came from the variant itself, fix the variant (`cv/variants/<archetype>.html`), not just the one tailored file — otherwise the same false claim will reappear in the next posting that uses that variant.
+**A posting I want was archived as irrelevant** — the reason is in its notes (expand the row in Done with "Show archived"). Click Reopen; manual overrides are never re-archived in the same run. If the gate itself is wrong, fix the pattern in `config.json` and add a case to `tests/test_gates.py`.
 
-**Fitted CV overflows one page** — this means the Step 2 reword pushed it over; per the skill's Hard Rule 4, undo the reword and re-render rather than trimming content in `cv/tailored/`. If the *variant itself* overflows, that's a Part B problem: drop `priority: 3` entries from the bank first, then `priority: 2`, and rebuild the variant.
+**A good posting got archived as "duplicate"** — it shares a normalized company|position with another live posting. Reopen it if they're genuinely different roles.
 
-**Duplicate postings in tracker** — the scraper dedups by `link`. If boards rewrite URLs, add `Company + Position` as a secondary dedup key in `prompts/scrape.md`.
+**Gmail sync misclassifies** — edit the rubric in `prompts/gmail_sync.md`. Your status click always wins.
 
-**New jobs don't appear in the HTML after scraping** — you forgot to rebuild: `python build_html.py`. The HTML embeds data at build time; it does not read `jobs.json` at runtime (browser security blocks `file://` pages from reading local JSON).
+**Fitted CV contains a claim I didn't make** — should be rare; fitting only rewords an audited variant. Fix the variant in `cv/variants/`, not just the one tailored file.
 
-**My edits disappeared after rebuilding the HTML** — edits live in
-`jobs.json` (plus a localStorage mirror, keyed by job `id`). Rebuilds embed
-the current `jobs.json` as the starting snapshot, so a rebuild picks up
-everything you saved. If you edited in one browser without linking the
-folder, those edits only exist in that browser's localStorage — open the
-rebuilt HTML in the same browser, or use Import JSON.
+**Fitted CV overflows one page** — undo the reword and re-render (skill Hard Rule 4). If the variant itself overflows, drop `priority: 3` bank entries and rebuild it (Part B).
+
+**Edits don't appear after a rebuild** — the dashboard reads the embedded snapshot; if your browser is linked to the folder it reloads `jobs.json` on open. If not linked, edits only exist in that browser's local cache — link the folder (⋯ → your local edits get written in) or Export JSON.
+
+**`build_html.py` says it migrated records** — a writer that still uses v1 fields touched `jobs.json` (see Migration status at the top). Harmless; the record is upgraded in place and a backup is in `backups/`.
 
 ## What's not automated (and why)
 
-- **Clicking Submit on applications.** You review each tailored CV and submit yourself. Keeps a human in the loop, avoids bot detection on ATSs.
-- **Scraping behind logins.** LinkedIn throttles aggressive automation. The scraper pauses on login/CAPTCHA; session cookies carry forward.
-- **Writing cover letters.** Out of scope for v1. Can be added as a second skill (`cover-letter`) that draws from the same experience bank.
+- **LinkedIn / big-tech applications.** Bot detection risk; you submit those yourself.
+- **Scraping when Chrome is closed.** The shortcuts need the extension; the scrape window covers the days you missed (up to 7).
+- **Cover letters.** Out of scope.
