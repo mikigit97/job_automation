@@ -17,12 +17,11 @@ never screenshots.
 
 Read three files from the Cowork project root:
 
-1. `config.json` — thresholds and pattern lists. You will use:
-   `years_max`, `role_families` (`ai`, `ds`), `junior_titles`,
-   `seniority_titles`, `teaching_titles`, `clinical_titles`,
-   `anonymous_companies`, `drop_anonymous_alljobs`, `agencies`,
-   `agency_patterns`. Each pattern list is a list of regex fragments; treat
-   a list as one case-insensitive alternation (`(?:a|b|c)`, flag `i`).
+1. `config.json` — only for the optional title pre-filter (Step 2):
+   `role_families` (`ai`, `ds`), `seniority_titles`, `teaching_titles`.
+   Each is a list of regex fragments; treat a list as one case-insensitive
+   alternation (`(?:a|b|c)`, flag `i`). Everything else in the file is
+   consumed by `ingest.py` / `build_html.py`, not by you.
 2. `jobs.json` — a JSON array of records in **schema v2**:
 
 ```json
@@ -50,9 +49,8 @@ Read three files from the Cowork project root:
 
 Keep in memory:
 - `existing_by_link` — link → record, for **every** record regardless of
-  status. Archived and rejected records are the memory that stops you from
-  re-adding a posting the user already dismissed.
-- `existing_keys` — the set of every record's `dedup_key`.
+  status. You use it only to avoid re-opening detail pages you already
+  have verified text for; `ingest.py` does the real dedup.
 - `to_verify` — records with `status == "new"`, `extraction_ok == false`,
   `extraction_attempts < 2`, and `source` in LinkedIn/AllJobs/Drushim. You
   will re-open these (Step 1b) before scraping anything new.
@@ -68,51 +66,14 @@ Keep in memory:
 A non-empty value in any scraper field means someone (a previous run, or the
 user via Edit) already set it — do not overwrite it.
 
-## Step 0.5 — Helpers you will need (define once)
+## Step 0.5 — What you decide vs. what `ingest.py` decides
 
-```javascript
-// Lower bound of a stated years-of-experience requirement, or null.
-// A number only counts when "experience"/"ניסיון" appears within 60 chars.
-const EXP_CTX = /experience|exp\.|ניסיון|נסיון/i;
-function yearsMin(text) {
-  const t = text || ''; const found = [];
-  const rxs = [
-    /(\d{1,2})\s*(?:\+|-|–|to)?\s*(?:\d{1,2})?\s*\+?\s*(?:years?|yrs?)\b/gi,
-    /(\d{1,2})\s*(?:\+|-|–)?\s*(?:\d{1,2})?\s*\+?\s*שנ(?:ה|ים|ות)/g,
-  ];
-  for (const rx of rxs) for (const m of t.matchAll(rx)) {
-    const lo = Math.max(0, m.index - 60), hi = m.index + m[0].length + 60;
-    if (EXP_CTX.test(t.slice(lo, hi))) found.push(parseInt(m[1], 10));
-  }
-  for (const m of t.matchAll(/שנתיים/g)) {
-    const lo = Math.max(0, m.index - 60), hi = m.index + 66;
-    if (EXP_CTX.test(t.slice(lo, hi))) found.push(2);
-  }
-  return found.length ? Math.min(...found) : null;
-}
-
-// Normalized company|position key. Mirrors build_html.py's dedup_key().
-function norm(s) {
-  return String(s || '').normalize('NFKC').toLowerCase()
-    .replace(/\((?:m\/f|f\/m|w\/m|m\/w|m\/f\/d|h\/f)\)|\b(?:m\/f|f\/m)\b|דרוש\/ה|דרושה|דרושים|דרושות|דרוש|\/ת\b|\/ה\b|\/ית\b|\/ות\b/g, ' ')
-    .replace(/\b(?:ltd\.?|inc\.?|llc|gmbh|corp\.?|co\.?)\b|בע"?מ|בע״מ/g, ' ')
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
-}
-function dedupKey(company, position) { return `${norm(company)}|${norm(position)}`; }
-
-// Verified = enough posting text to judge the role.
-function extractionOk(rec) {
-  return (rec.requirements || []).length >= 2 || String(rec.description || '').length >= 200;
-}
-
-// Agency = listed in config.agencies (whole-word match on the normalized name)
-// or matches config.agency_patterns.
-function isAgency(company, cfg) {
-  const c = ' ' + norm(company) + ' ';
-  if (cfg.agencies.some(a => c.includes(' ' + norm(a) + ' '))) return true;
-  return new RegExp('(?:' + cfg.agency_patterns.join('|') + ')', 'i').test(c);
-}
-```
+You extract. `ingest.py` (Step 2) gates, dedups, and writes, using the same
+Python functions as `build_html.py`, so there is nothing to compute by hand:
+no years parsing, no dedup keys, no agency matching. The only judgement calls
+in this shortcut are the title pre-filter in Step 2 (optional, time-saving)
+and what counts as a description / requirement line when a page's headers
+are irregular.
 
 ## Step 1 — Boards
 
@@ -547,70 +508,52 @@ extractor you would use for its `source` (LinkedIn: search-view with
 `currentJobId`, then the standalone fallback and the poster-requirements
 sweep; AllJobs: the card parser on the results page or the
 `UploadSingle.aspx` page; Drushim: `window.__NUXT__.data[0].jobData`).
-Then:
-
-- Merge into the record only fields that are empty: `description`,
-  `responsibilities`, `requirements`, `nice_to_have`, `location`, `date`.
-- `extraction_attempts += 1`; `extraction_ok = extractionOk(record)`;
-  `years_min = yearsMin(all text)`.
-- Never touch `status` or any user field. If it is still unverified after
-  this, leave it — the dashboard shows it as *unverified* and the user can
-  paste the requirements by hand.
+Then add what you extracted to `scrape_raw.json` (Step 2) under that
+record's `source`, with the **same `link`**. `ingest.py` merges only empty
+fields, bumps `extraction_attempts`, and recomputes `extraction_ok`. If it is
+still unverified after this, leave it — the dashboard shows it as
+*unverified* and the user can paste the requirements by hand.
 
 Cap this pass at 10 records per run; oldest `scraped_at` first.
 
-## Step 2 — Gates: decide what gets written
+## Step 2 — Hand everything to `ingest.py` (it applies the gates)
 
-Run these on every extracted posting **before** building a record. Gates
-marked *drop* discard the posting (count it, don't write it). Gates marked
-*flag* set a field and continue.
+You do **not** build records, gate, or dedup by hand. Write every posting you
+extracted (all boards, verified or not) to `scrape_raw.json` at the project
+root in this shape, then run the two commands:
 
-| # | Gate | Where | Rule | Outcome |
-|---|---|---|---|---|
-| 2a | Role family | title | must match `role_families.ai` **or** `role_families.ds` | *drop* if neither (`family`) |
-| 2b | Seniority | title | matches `seniority_titles` | *drop* (`senior`) |
-| 2c | Teaching | title | matches `teaching_titles` | *drop* (`teaching`) |
-| 2d | Clinical | title | matches `clinical_titles` | *drop* (`clinical`). This replaced the old whole-domain medical filter: ML roles at medtech companies are **kept**. |
-| 2e | Anonymous employer | company | `source == "AllJobs"` and company matches `anonymous_companies`, when `drop_anonymous_alljobs` is true | *drop* (`anonymous`) |
-| 2f | Verified? | text | `extraction_ok = extractionOk(rec)` | *flag* — never drop for this |
-| 2g | Years | text | only if `extraction_ok`: `years_min = yearsMin(text)`; drop when `years_min > years_max` | *drop* (`years`). Unverified postings are never gated on years. |
-| 2h | Agency | company | `agency = isAgency(company, cfg)` | *flag* |
-| 2i | Already known | link | `link` in `existing_by_link` | go to Step 4 (enrich), don't build a new record |
-| 2j | Duplicate | key | `dedupKey(company, position)` in `existing_keys` | *drop* (`duplicate`) — same job via another board/agency, or one the user already handled |
+```json
+{"scraped_at": "<ISO-8601 UTC of this run>",
+ "batches": [
+   {"source": "LinkedIn", "finished": true,
+    "postings": [
+      {"position": "...", "company": "...", "link": "<canonical URL, see templates below>",
+       "location": null, "date": "YYYY-MM-DD or null", "description": "prose lead-in or null",
+       "responsibilities": ["..."], "requirements": ["..."], "nice_to_have": [],
+       "applied_date": null}
+    ]},
+   {"source": "AllJobs", "finished": true, "postings": [...]},
+   {"source": "Drushim", "finished": true, "postings": [...]}
+ ]}
+```
 
-Notes:
-- "Data Scientist מנוסה" (experienced) is not a seniority word; "לחברה
-  מובילה" (a leading company) is not "מוביל צוות". Trust the config patterns.
-- Drushim postings the user already sent a CV to are **not** dropped — see
-  Step 3, they are imported as applied.
+```
+python ingest.py scrape_raw.json
+python build_html.py
+```
 
-## Step 3 — Build each job record
+- `finished: false` for a board you had to skip (login / CAPTCHA / timeout);
+  its `state.json` window is then left alone so the next run still covers
+  the gap.
+- `applied_date` is Drushim-only: the `YYYY-MM-DD` from the card's
+  "שלחת קו"ח ב" badge, else `null`.
+- Arrays may be empty. **Never write `["N/A"]`.** Strings are fine too —
+  `ingest.py` splits them on line breaks / bullets.
+- Include postings you re-extracted for Step 1b: a `link` that already
+  exists in `jobs.json` is treated as an enrichment, never as a duplicate.
 
-For every surviving posting, build the schema-v2 object shown in Step 0:
-
-| Field | Value |
-|---|---|
-| `id` | `<lowercase-first-word-of-company>-<6-char-md5-of-link>` (Hebrew first words kept as-is; on collision append `-2`, `-3`…) |
-| `position`, `company`, `source`, `location`, `date` | as extracted (`date` as `YYYY-MM-DD` or null) |
-| `link` | canonical URL from the template below — never the DOM anchor's href |
-| `scraped_at`, `status_changed_at` | ISO-8601 UTC timestamp of this run |
-| `description` | lead-in prose, ≤600 chars, or null |
-| `responsibilities` / `requirements` / `nice_to_have` | arrays of strings (max 4 / 6 / 3). **Never write `["N/A"]`** — an empty array plus `extraction_ok: false` is the honest form. |
-| `extraction_ok`, `extraction_attempts: 1`, `years_min`, `agency`, `dedup_key` | from Step 2 |
-| `status: "new"`, `status_source: "scraper"` | default |
-| `applied_at`, `applied_via`, `followed_up_at`, `archive_reason`, `last_email`, `cv_variant`, `cv_tailored_at` | null |
-| `notes: ""`, `recruiter_phone: ""` | empty |
-
-**Drushim "CV already sent" import.** When the card's `applied` value is a
-date (Step 1, Board 3), the user applied to this job outside the pipeline.
-Write it with `status: "applied"`, `status_source: "scraper"`,
-`applied_via: "manual"`, `applied_at: "<that date>"`,
-`status_changed_at: "<that date>"`, and `notes: "imported: CV sent via
-Drushim on <date>"`. It still passes through Step 2 gates first (a senior
-posting the user applied to by hand is still imported — skip gates 2a–2g for
-applied imports; apply 2i/2j only).
-
-Canonical `link` templates:
+Canonical `link` templates — always build the URL yourself from the
+extracted id, never trust the DOM anchor's href:
 
 | Source | Template |
 |---|---|
@@ -618,44 +561,45 @@ Canonical `link` templates:
 | AllJobs | `https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=<ID>` |
 | Drushim | `https://www.drushim.co.il/job/<JobCode>/<hash-lowercase>/` |
 
-## Step 4 — Dedup against `jobs.json`
+### What `ingest.py` does with each posting (for reference — same code as `build_html.py`)
 
-For each built record:
+| # | Gate | Where | Rule | Outcome |
+|---|---|---|---|---|
+| 2a | Role family | title | must match `role_families.ai` **or** `role_families.ds` | *drop* (`family`) |
+| 2b | Seniority | title | matches `seniority_titles` | *drop* (`senior`) |
+| 2c | Teaching | title | matches `teaching_titles` | *drop* (`teaching`) |
+| 2d | Clinical | title | matches `clinical_titles` | *drop* (`clinical`). ML roles at medtech companies are **kept**. |
+| 2e | Anonymous employer | company | AllJobs + `anonymous_companies` (when `drop_anonymous_alljobs`) | *drop* (`anonymous`) |
+| 2f | Verified? | text | ≥2 requirement lines or ≥200-char description → `extraction_ok` | *flag* only |
+| 2g | Years | text | only if verified: lower bound of the stated range > `years_max` | *drop* (`years`) |
+| 2h | Agency | company | `agencies` list / `agency_patterns` | *flag* |
+| 2i | Known link | link | already in `jobs.json` (any status) | enrich empty fields; Drushim `applied_date` on a `new` record → `applied` |
+| 2j | Duplicate | key | normalized company\|position already known | *drop* (`duplicate`) |
 
-- **`link` already in `existing_by_link`** → do not append. If the existing
-  record's `status` is `archived` or `rejected`, leave it untouched.
-  Otherwise enrich only empty scraper fields (`location`, `date`,
-  `description`, `responsibilities`, `requirements`, `nice_to_have`), then
-  recompute `extraction_ok` / `years_min` if anything was filled. Never
-  touch `scraped_at` or any user field.
-  - Special case: the existing record is Drushim with `status: "new"` and
-    the card now shows `applied` = a date → the user applied by hand. Set
-    `status: "applied"`, `status_source: "scraper"`, `applied_via: "manual"`,
-    `applied_at: <date>`, `status_changed_at: <date>`, append the import
-    note. This is the only status write the scraper ever makes.
-- **`dedup_key` already in `existing_keys`** → drop (`duplicate`).
-- **Otherwise** → append.
+Records land as `status: "new"`, `status_source: "scraper"` — or, for a
+Drushim card with `applied_date`, as `status: "applied"`, `applied_via:
+"manual"`, `applied_at: <date>`, with an import note. Gates 2a–2g are
+skipped for those imports.
 
-## Step 5 — Write `jobs.json`, `state.json`, and rebuild
+**Use 2a–2c yourself as a pre-filter** to save time: don't open the detail
+view of a LinkedIn card whose *title* is clearly outside the AI/DS families,
+or says senior/lead/manager, or is a teaching role. `ingest.py` would drop it
+anyway. Never pre-filter on years or on anything you'd need the detail page
+for.
 
-All-or-nothing per run — hold the updated array in memory, then write once:
+## Step 3 — After the two commands
 
-1. `jobs.json`: pretty-printed, 2-space indent, UTF-8, `ensure_ascii=false`.
-2. `state.json`: for each board you **actually finished** (not skipped on
-   login/CAPTCHA), set `sources.<Source>.last_scrape_at` to this run's
-   timestamp. A skipped board keeps its old value so the next run's window
-   still covers the gap.
-3. Run `python build_html.py`. It migrates any v1 records, archives
-   irrelevant/duplicate `new` postings that slipped through, computes fit
-   tiers, and rebuilds `Job_applications.html`. Include its printed summary
-   in your report.
+`ingest.py` prints one line (new / enriched / imported / duplicates /
+filtered by reason / agency / unverified). `build_html.py` prints the
+migration, maintenance and fit-tier summary. Put both in your report. Do not
+write any other files; do not edit `jobs.json` directly.
 
-Do not write any other files.
-
-## Step 6 — Summary line
+## Step 4 — Summary
 
 ```
-Scraped N new (LI:a AJ:b DR:c) · E enriched · V re-verified (v_ok now verified) · I imported as applied (Drushim) · D duplicates · filtered: f_f family / f_s senior / f_t teaching / f_c clinical / f_a anonymous / f_y years · flagged: g agency, u unverified · window LI r<seconds> · build: <build_html.py summary>
+Boards: LinkedIn <n cards seen, window r<seconds>> · AllJobs <n> · Drushim <n> · skipped: <none | board (reason)>
+ingest:  <the line ingest.py printed>
+build:   <the lines build_html.py printed>
 ```
 
 ## Guardrails
@@ -669,7 +613,7 @@ Scraped N new (LI:a AJ:b DR:c) · E enriched · V re-verified (v_ok now verified
   row**: move on.
 - **`requests` in the Python sandbox is proxy-blocked** — all scraping goes
   through Claude in Chrome.
-- **Never write `["N/A"]`, never delete a record, never change a status**
-  except the Drushim applied import.
-- **If `jobs.json` is write-locked**, print the error and stop; do not fall
-  back to a sibling file.
+- **Never write `["N/A"]`; never edit `jobs.json` by hand** — `ingest.py`
+  is the only writer in this shortcut.
+- **If `scrape_raw.json` or `jobs.json` is write-locked**, print the error
+  and stop; do not fall back to a sibling file.

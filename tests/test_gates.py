@@ -288,5 +288,47 @@ class Purge(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in d.iterdir()), ["Mickael Zeitoun - CV.pdf", "x-2.html"])
 
 
+class Ingest(unittest.TestCase):
+    def run_ingest(self, batches, jobs):
+        import tempfile, ingest
+        d = Path(tempfile.mkdtemp())
+        (d / "raw.json").write_text(json.dumps({"batches": batches, "scraped_at": "2026-09-14T08:00:00Z"}, ensure_ascii=False), encoding="utf-8")
+        (d / "jobs.json").write_text(json.dumps(jobs, ensure_ascii=False), encoding="utf-8")
+        (d / "state.json").write_text('{"sources": {}}', encoding="utf-8")
+        c = ingest.run(d / "raw.json", d / "jobs.json", d / "state.json", CFG)
+        return c, json.loads((d / "jobs.json").read_text(encoding="utf-8")), json.loads((d / "state.json").read_text(encoding="utf-8"))
+
+    def test_new_gated_duplicate_and_state(self):
+        batches = [{"source": "LinkedIn", "finished": True, "postings": [
+            {"position": "Data Scientist", "company": "Acme Ltd", "link": "https://x/1", "requirements": ["Python", "SQL"]},
+            {"position": "Senior Data Scientist", "company": "Beta", "link": "https://x/2", "requirements": ["Python", "SQL"]},
+            {"position": "Data Scientist (m/f)", "company": "ACME", "link": "https://x/3", "requirements": ["Python", "SQL"]},
+            {"position": "AI Engineer", "company": "Gamma", "link": "https://x/4", "requirements": "5+ years of experience\nPython"},
+        ]}, {"source": "AllJobs", "finished": False, "postings": []}]
+        c, jobs, state = self.run_ingest(batches, [])
+        self.assertEqual(c["new"], {"LinkedIn": 1})
+        self.assertEqual(c["filtered"], {"senior": 1, "years": 1})
+        self.assertEqual(c["duplicate"], 1)
+        self.assertEqual([j["status"] for j in jobs], ["new"])
+        self.assertIn("LinkedIn", state["sources"])
+        self.assertNotIn("AllJobs", state["sources"])
+
+    def test_enrich_and_drushim_import(self):
+        existing = [{"id": "acme-1", "position": "Data Scientist", "company": "Acme", "source": "Drushim", "link": "https://d/1",
+                     "scraped_at": "2026-09-10T00:00:00Z", "requirements": [], "description": None, "status": "new",
+                     "status_source": "scraper", "status_changed_at": "2026-09-10T00:00:00Z", "extraction_attempts": 1}]
+        batches = [{"source": "Drushim", "finished": True, "postings": [
+            {"position": "Data Scientist", "company": "Acme", "link": "https://d/1", "requirements": ["Python", "SQL", "2 years experience"], "applied_date": "2026-09-12"},
+            {"position": "ML Engineer", "company": "Delta", "link": "https://d/2", "requirements": ["Python", "SQL"], "applied_date": "2026-09-11"},
+        ]}]
+        c, jobs, _ = self.run_ingest(batches, existing)
+        a = jobs[0]
+        self.assertEqual((a["status"], a["applied_via"], a["applied_at"], a["extraction_ok"], a["extraction_attempts"]), ("applied", "manual", "2026-09-12", True, 2))
+        self.assertEqual(c["reverified"], 1)
+        b = jobs[1]
+        self.assertEqual((b["status"], b["applied_at"]), ("applied", "2026-09-11"))
+        self.assertEqual(c["imported"], 1)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=1)

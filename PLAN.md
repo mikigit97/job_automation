@@ -71,11 +71,12 @@ weak = unverified or agency or years_min == years_max; ok otherwise.
 
 ## Prompt contract (all writers are on schema v2)
 
-`prompts/scrape.md` and `scrape-bigtech.md` read `config.json` for every gate,
-compute the LinkedIn window from `state.json`, mark records `extraction_ok`
-or leave them unverified (never `["N/A"]`), re-verify unverified `new`
-records (max 2 attempts), flag agencies, drop duplicates by `dedup_key`, and
-import Drushim "CV already sent" cards as `applied`. `gmail_sync.md` matches
+`prompts/scrape.md` and `scrape-bigtech.md` only extract: they compute the
+LinkedIn window from `state.json`, re-open unverified `new` records (max 2
+attempts), and dump raw postings to `scrape_raw.json`. `ingest.py` then
+applies the gates, marks `extraction_ok`, flags agencies, drops duplicates by
+`dedup_key`, imports Drushim "CV already sent" cards as `applied`, and
+updates `state.json` — with the same functions `build_html.py` uses. `gmail_sync.md` matches
 company, position-in-subject and ATS senders, and only moves status forward
 when the email is newer than `status_changed_at`. `auto_apply.md` is
 on-demand only, requires `extraction_ok` and a fitted CV, and writes

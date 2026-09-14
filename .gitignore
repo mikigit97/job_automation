@@ -25,3 +25,6 @@ synctest*.txt
 # Fitted CV render artifacts
 cv/tailored/*.preview.png
 cv/variants/*.preview.png
+
+# Scratch output of the last scrape run
+scrape_raw.json

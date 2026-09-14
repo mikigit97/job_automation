@@ -35,7 +35,7 @@ Claude Settings → Skills → point at `skills/cv-tailor/SKILL.md` (or install 
 
 Everything lives in one file, `jobs.json`. The dashboard `Job_applications.html` is generated from it by `build_html.py` and writes your edits back into it.
 
-**08:00 & 16:00 — `/scrape-jobs`** (needs Chrome open with the extension). Reads `jobs.json`, scrapes LinkedIn (five queries, window since the last run) / AllJobs / Drushim, appends new postings with `status: new`, re-visits postings whose requirements weren't captured, then runs `python build_html.py`.
+**08:00 & 16:00 — `/scrape-jobs`** (needs Chrome open with the extension). Scrapes LinkedIn (six queries, window since the last run) / AllJobs / Drushim, re-visits postings whose requirements weren't captured, dumps everything to `scrape_raw.json`, then runs `python ingest.py` (gates, dedup, write) and `python build_html.py`.
 
 **Sunday 16:00 — `/scrape-bigtech`.** Same, for NVIDIA / Google / Apple / Amazon Israel pages. Weekly, because junior openings there are rare.
 
@@ -129,6 +129,8 @@ Three durable base CVs in `cv/variants/`:
 |---|---|
 | `jobs.json` | The store. Schema v2 above. |
 | `build_html.py` | Migrate → derive → maintain → fit → render. `--dry-run` reports without writing. |
+| `ingest.py` | Turns `scrape_raw.json` (what the browser extracted) into records: gates, dedup, Drushim applied import, `state.json`. Same functions as `build_html.py`. |
+| `scrape_raw.json` | Scratch output of the last scrape run (gitignored). |
 | `config.json` | Thresholds and pattern lists. |
 | `templates/dashboard.html` | Dashboard template (data is embedded at build time). |
 | `Job_applications.html` | Generated dashboard. Open in Chrome. |

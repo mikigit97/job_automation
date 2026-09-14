@@ -208,31 +208,30 @@ extractAmazon();
 Build each record with `source = "Amazon"` and `company = "Amazon"`. Detail
 page sections: `DESCRIPTION`, `BASIC QUALIFICATIONS`, `PREFERRED QUALIFICATIONS`.
 
-## Step 2 — Gates
+## Step 2 — Hand everything to `ingest.py`
 
-Apply `scrape.md` Step 2 gates 2a–2j exactly. Notes for these boards:
+Same as `scrape.md` Step 2: write every extracted posting to
+`scrape_raw.json` (one batch per board, `source` = `NVIDIA` / `Google` /
+`Apple` / `Amazon`, `company` = the same name, `applied_date: null`,
+`finished: false` for any board you had to abandon), then run
 
-- 2e (anonymous employer) never applies — there are no anonymous postings.
+```
+python ingest.py scrape_raw.json
+python build_html.py
+```
+
+Board notes:
+- 2e (anonymous employer) never applies here; 2h: none of the four are agencies.
 - 2d is **clinical titles only**. Google Health / Apple Health ML roles are
   kept; a "Clinical Research Coordinator" is dropped.
-- 2g (years): big-tech postings bury the years in "Minimum qualifications" /
-  "Basic qualifications" — make sure that section is in the text you pass
-  to `yearsMin()`. Expect most postings to fail this gate; that is the
-  point of the gate, not a bug.
-- 2h: none of these four are agencies (`agency: false`).
+- 2g (years): the years live in "Minimum qualifications" / "Basic
+  qualifications" — make sure that section is in `requirements` or
+  `description`, otherwise the record is unverified and skips the gate.
+  Expect most postings to fail the years gate; that is the point.
+- Title pre-filter (2a–2c) is allowed before opening a detail page, as in
+  `scrape.md`.
 
-## Step 3 — Build each job record
-
-Same schema-v2 record as `scrape.md` Step 3 (`status: "new"`,
-`status_source: "scraper"`, `extraction_ok`, `years_min`, `agency: false`,
-`dedup_key`, empty arrays never `["N/A"]`), including the `description`
-field — the prose lead-in before "Responsibilities" / "Minimum
-qualifications" on the detail page. NVIDIA tags it with no header (it's just
-the first paragraph); Google labels it implicitly under the role title; Apple
-has a literal "Description" header; Amazon has "DESCRIPTION". Cap at ~600 chars.
-
-The only differences vs the main scraper are the `source` / `company` values
-and the canonical link templates:
+Canonical `link` templates:
 
 | Source | `company` | Template |
 |---|---|---|
@@ -241,26 +240,12 @@ and the canonical link templates:
 | Apple | `Apple` | `https://jobs.apple.com/en-us/details/<ID>` |
 | Amazon | `Amazon` | `https://www.amazon.jobs/en/jobs/<ID>` |
 
-`id` is still `<lowercase-first-word-of-company>-<6-char-md5-of-link>` — so
-NVIDIA entries start with `nvidia-`, Google with `google-`, and so on.
-
-## Step 4 — Dedup against `jobs.json`
-
-Same rules as `scrape.md` Step 4: `link` already known → enrich empty
-scraper fields only (never a status); `dedup_key` already known → drop as
-duplicate. The `/scrape-jobs` run may already hold the same posting via
-LinkedIn — the `dedup_key` check is what catches that.
-
-## Step 5 — Write `jobs.json`, `state.json` and rebuild
-
-Same as `scrape.md` Step 5. In `state.json` set `sources.NVIDIA`,
-`sources.Google`, `sources.Apple`, `sources.Amazon` → `last_scrape_at` for
-each board you finished. Then run `python build_html.py`.
-
-## Step 6 — Summary line
+## Step 6 — Summary
 
 ```
-Big-tech: N new (NV:a GO:b AP:c AM:d) · E enriched · D duplicates · filtered: f_f family / f_s senior / f_t teaching / f_c clinical / f_y years · u unverified · build: <build_html.py summary>
+Boards: NVIDIA <n cards> · Google <n> · Apple <n> · Amazon <n> · skipped: <none | board (reason)>
+ingest:  <the line ingest.py printed>
+build:   <the lines build_html.py printed>
 ```
 
 ## Guardrails
