@@ -1,14 +1,16 @@
-# Chrome shortcut: /scrape-bigtech
+# Chrome shortcut: /scrape-bigtech  (schema v2)
 
-Save this as a Claude in Chrome shortcut. Schedule it Sun–Thu at 16:00 only —
-big-tech careers pages update far less frequently than the job boards, so one
-pass per day is enough. This shortcut scrapes the Israel careers pages for
-NVIDIA, Google, Apple, and Amazon and appends new postings to the same
-`jobs.json` the main `/scrape-jobs` shortcut writes to.
+Save this as a Claude in Chrome shortcut. Schedule it **Sunday at 16:00,
+weekly**. Junior openings at these companies are rare and usually ask for
+3–5+ years, so one pass a week catches everything worth catching. This
+shortcut scrapes the Israel careers pages for NVIDIA, Google, Apple, and
+Amazon and appends new postings to the same `jobs.json` the main
+`/scrape-jobs` shortcut writes to.
 
-The data model, filter rules, dedup rules, and write-then-rebuild sequence are
-identical to `scrape.md`. This file only documents the four extra boards and
-the source-specific URL and extraction pattern.
+The data model (schema v2), helpers, gates, dedup rules, and write-then-rebuild
+sequence are **identical to `scrape.md`** — read that file's Step 0, 0.5, 2,
+3, 4, 5 and apply them here. This file only documents the four extra boards
+and their URL / extraction patterns.
 
 ---
 
@@ -16,11 +18,14 @@ You are running the Israel DS / AI-engineer big-tech scraper. Follow the steps
 below exactly. Use the accessibility tree or page-state JavaScript, never
 screenshots.
 
-## Step 0 — Load the existing tracker
+## Step 0 — Load the tracker, config and state
 
-Same as `scrape.md` Step 0. Read `jobs.json`, build `existing_links` and
-`existing_by_link`. Stay in the scraper lane — never touch `last_email`,
-`status_auto`, `status_manual`, `interested`, or `notes`.
+Same as `scrape.md` Step 0: read `config.json`, `jobs.json` (schema v2) and
+`state.json`; build `existing_by_link` (every record, any status) and
+`existing_keys` (every `dedup_key`). Define the Step 0.5 helpers
+(`yearsMin`, `dedupKey`, `extractionOk`, `isAgency`). Stay in the scraper
+lane: never touch `status`, `applied_at`, `notes`, `last_email`, or any
+other user/Gmail/fit field.
 
 ## Step 1 — Boards
 
@@ -77,9 +82,10 @@ extractNvidia();
 
 Build each record with `source = "NVIDIA"` and `company = "NVIDIA"`. Description
 sections come from the job-detail page (`/careers/job/<id>`) under the
-`Responsibilities` / `What we need to see` / `Ways to stand out` headers. If
-that fetch is skipped, write `responsibilities: ["N/A"]`, `requirements: ["N/A"]`,
-`nice_to_have: []` — the dedup pass will enrich them on a later run.
+`Responsibilities` / `What we need to see` / `Ways to stand out` headers.
+**Open the detail page** — without it the record is unverified
+(`requirements: []`, `extraction_ok: false`) and the years gate can't run,
+which for big tech means most postings would slip into the Inbox unfiltered.
 
 ### Board 5 — Google
 
@@ -202,32 +208,30 @@ extractAmazon();
 Build each record with `source = "Amazon"` and `company = "Amazon"`. Detail
 page sections: `DESCRIPTION`, `BASIC QUALIFICATIONS`, `PREFERRED QUALIFICATIONS`.
 
-## Step 2 — Filter out postings you won't apply to
+## Step 2 — Gates
 
-Apply the same four rules as `scrape.md` Step 2:
+Apply `scrape.md` Step 2 gates 2a–2j exactly. Notes for these boards:
 
-- **2a. Seniority** — drop `senior`, `sr.?`, `lead`, `principal`, `staff`,
-  `head of`, `director`, `vp`, `chief`, and their Hebrew equivalents.
-- **2b. VIP-only** — N/A for big-tech boards (no anonymous postings). Skip.
-- **2c. Medical/healthcare** — drop if any medical keyword appears in title
-  or description. Big-tech has "health" sub-teams (Google Health, Apple
-  Health); treat those the same as a medical company.
-- **2d. Experience threshold** — drop if the requirements demand 4+ years.
-  Big-tech postings often bury this in "Minimum qualifications", so run the
-  same `demandsTooMuchExperience` regex over that section.
-
-Track counters per reason (`seniority`, `medical`, `experience`) for the
-summary line.
+- 2e (anonymous employer) never applies — there are no anonymous postings.
+- 2d is **clinical titles only**. Google Health / Apple Health ML roles are
+  kept; a "Clinical Research Coordinator" is dropped.
+- 2g (years): big-tech postings bury the years in "Minimum qualifications" /
+  "Basic qualifications" — make sure that section is in the text you pass
+  to `yearsMin()`. Expect most postings to fail this gate; that is the
+  point of the gate, not a bug.
+- 2h: none of these four are agencies (`agency: false`).
 
 ## Step 3 — Build each job record
 
-Same schema as `scrape.md` Step 3, including the `description` field — the
-prose lead-in before "Responsibilities" / "Minimum qualifications" on the
-detail page. NVIDIA tags it with no header (it's just the first paragraph);
-Google labels it implicitly under the role title; Apple has a literal
-"Description" header; Amazon has "DESCRIPTION". Cap at ~600 chars.
+Same schema-v2 record as `scrape.md` Step 3 (`status: "new"`,
+`status_source: "scraper"`, `extraction_ok`, `years_min`, `agency: false`,
+`dedup_key`, empty arrays never `["N/A"]`), including the `description`
+field — the prose lead-in before "Responsibilities" / "Minimum
+qualifications" on the detail page. NVIDIA tags it with no header (it's just
+the first paragraph); Google labels it implicitly under the role title; Apple
+has a literal "Description" header; Amazon has "DESCRIPTION". Cap at ~600 chars.
 
-The only schema change vs the main scraper is the `source` / `company` values
+The only differences vs the main scraper are the `source` / `company` values
 and the canonical link templates:
 
 | Source | `company` | Template |
@@ -242,19 +246,21 @@ NVIDIA entries start with `nvidia-`, Google with `google-`, and so on.
 
 ## Step 4 — Dedup against `jobs.json`
 
-Same rule as `scrape.md` Step 4. The main `/scrape-jobs` run earlier in the
-day may have populated entries for the same company via LinkedIn — if a
-posting's `link` already exists, enrich only empty/null scraper-owned fields.
+Same rules as `scrape.md` Step 4: `link` already known → enrich empty
+scraper fields only (never a status); `dedup_key` already known → drop as
+duplicate. The `/scrape-jobs` run may already hold the same posting via
+LinkedIn — the `dedup_key` check is what catches that.
 
-## Step 5 — Write `jobs.json` and rebuild
+## Step 5 — Write `jobs.json`, `state.json` and rebuild
 
-Same as `scrape.md` Step 5: overwrite `jobs.json` atomically, then run
-`python build_html.py` to rebuild the tracker.
+Same as `scrape.md` Step 5. In `state.json` set `sources.NVIDIA`,
+`sources.Google`, `sources.Apple`, `sources.Amazon` → `last_scrape_at` for
+each board you finished. Then run `python build_html.py`.
 
 ## Step 6 — Summary line
 
 ```
-Scraped N new positions across NVIDIA / Google / Apple / Amazon (E enriched, D duplicates, F filtered: f_s senior / f_m medical / f_e 4+yrs). HTML rebuilt.
+Big-tech: N new (NV:a GO:b AP:c AM:d) · E enriched · D duplicates · filtered: f_f family / f_s senior / f_t teaching / f_c clinical / f_y years · u unverified · build: <build_html.py summary>
 ```
 
 ## Guardrails
@@ -264,6 +270,7 @@ Scraped N new positions across NVIDIA / Google / Apple / Amazon (E enriched, D d
 - **Runtime cap**: 5 minutes total across all four boards.
 - **Same empty result 3 runs in a row**: surface the URL and extraction
   snippet to the user so they can inspect — the DOM may have shifted.
-- **Detail-page fetches are optional.** Listing extraction alone is enough
-  to create the record; the next `/scrape-bigtech` run re-enriches any
-  entry whose `requirements` is `["N/A"]`.
+- **Detail-page fetches are not optional here.** A listing card alone gives
+  an unverified record, and unverified records skip the years gate. If time
+  runs out, stop adding postings rather than adding unverified ones; the
+  next run's Step 1b re-verify pass (from `scrape.md`) covers the rest.

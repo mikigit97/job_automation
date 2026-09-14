@@ -1,125 +1,122 @@
-# Cowork task: /auto-apply
+# Cowork task: Auto-apply  (schema v2, on demand only)
 
-Save this as a Cowork saved task. Schedule it Sun–Thu at 09:00. Trigger manually
-from the tracker HTML's "⚡ Auto-apply now" button or from the mobile artifact.
+Save this as a Cowork saved task named "Auto-apply". **Never schedule it.**
+Run it when you have reviewed the Inbox and want the AllJobs / Drushim
+postings applied to in one pass.
 
-The task reads `jobs.json`, decides which entries are safe to apply to without
-tripping anti-bot defences, drives Claude in Chrome to fill each application,
-and writes the outcome back into `jobs.json`.
+The task reads `jobs.json`, picks the postings that are safe to apply to
+without tripping anti-bot defences, makes sure each has a fitted CV, drives
+Claude in Chrome to submit the application, and records the outcome.
 
 ---
 
-You are running the Israel DS / AI-engineer **auto-apply** task. Use Claude in
-Chrome with the accessibility tree or page-state JavaScript — never screenshots.
+You are running the Israel junior AI / ML / DS **auto-apply** task. Use
+Claude in Chrome with the accessibility tree or page-state JavaScript — never
+screenshots.
 
 ## Step 0 — Load the tracker
 
-Read `jobs.json` from the Cowork project root.
+Read `jobs.json` from the Cowork project root (schema v2).
+
+### Field ownership — the auto-apply lane
+
+You may write, on the records you actually submitted: `status`,
+`status_source` (`"auto_apply"`), `status_changed_at`, `applied_at`,
+`applied_via` (`"auto"`), and append one line to `notes`. On records you
+could not submit you may only append to `notes`. Nothing else, ever. Save
+with a field-scoped patch.
 
 ## Step 1 — Pick candidates
 
-A row is a candidate iff **all** of these hold:
+A record is a candidate iff **all** of these hold:
 
-1. `deleted` is falsy.
-2. `status_manual` is null/empty AND `status_auto` is null/empty.
-   (Anything already "Applied", "Interview", "Offer", "Rejected" is left alone.)
-3. `interested !== 'no'`.
+1. `status == "new"`.
+2. `source` is exactly `AllJobs` or `Drushim`. Any other source — LinkedIn,
+   big-tech pages, Manual — skip: those you apply to yourself.
+3. `extraction_ok == true`. Never apply blind to a posting whose
+   requirements weren't captured; it shows as *unverified* in the dashboard
+   and needs a look first.
 4. `link` is set.
-5. **Source whitelist**: `source` is exactly `AllJobs` or `Drushim`. Any other
-   source — LinkedIn, Comeet, big-tech career pages, manual entries — skip.
-6. **Title gate**: `position` matches one of:
-   `data scientist`, `machine learning`, ` ML ` / ` ML/`, ` AI `, `deep learning`,
-   `applied scientist`, `research scientist`, `research engineer`, `NLP`,
-   `computer vision`, `LLM`, `gen ai`, `MLOps`, `algorithm engineer`,
-   `algorithm developer`, plus the Hebrew equivalents
-   (`מדען נתונים`, `למידת מכונה`, `בינה מלאכותית`, `אלגוריתמ`).
-   Skip any title containing `senior`, `sr.`, `lead`, `principal`, `staff`,
-   `manager`, `director`, `head of`, `architect`, `vp` (and `בכיר`, `מנהל`,
-   `ראש צוות`).
-7. **Years gate**: scan `requirements` + `responsibilities` + `description`
-   for digit-followed-by-`year(s)`, `yr(s)`, `שנה`/`שנים`/`שנות`, plus the bare
-   word `שנתיים` (=2). If the lowest number found exceeds 2, skip.
+5. `notes` does not already contain `auto-apply:` (one attempt per posting;
+   retries are the user's call, via the dashboard).
 
-If a `last_email.classification === 'Auto_ack'` exists for the row, treat it
-as "already applied" and skip.
+Order: `fit.tier` strong → ok → weak, then newest `scraped_at`. **Max 15
+per run.**
 
-## Step 2 — Filter by destination host
+## Step 2 — Make sure a fitted CV exists
 
-If the application link redirects to one of these hosts, skip and write
-`status_manual = "Manual review"` with a note explaining why:
+For each candidate, the file to upload is `cv/tailored/<id>.pdf`. If it does
+not exist, run the `cv-tailor` skill, **Part A**, for that one record first
+(it picks the closest variant, renders the PDF, and writes `cv_variant` /
+`cv_tailored_at` on the record). If fitting fails — no variant covers the
+role (Hard Rule 6) — append `auto-apply: no matching CV variant` to `notes`
+and skip the record. Never upload `cv/base_cv.pdf` or any other generic file.
 
-- `linkedin.com` (any subpath)
-- `greenhouse.io`, `boards.greenhouse.io`
-- `lever.co`, `jobs.lever.co`
-- `myworkdayjobs.com`, `workday.com`
-- `ashbyhq.com`, `jobs.ashbyhq.com`
-- `smartrecruiters.com`
-- `comeet.co`, `comeet.com`
-- Career subdomains at: `google.com`, `meta.com`, `careers.fb.com`,
-  `microsoft.com`, `amazon.jobs`, `apple.com`, `nvidia.com`, `intel.com`,
-  `wix.com`, `monday.com`, `checkpoint.com`, `paloaltonetworks.com`,
-  `lightricks.com`
+## Step 3 — Filter by destination host
 
-For these the bot-detection risk is too high; you do them manually.
+If the application link redirects to any of these hosts, skip it and append
+`auto-apply: skipped, <host> needs a manual application` to `notes`:
 
-## Step 3 — Apply (per candidate, max 15 per run)
+- `linkedin.com`
+- `greenhouse.io`, `lever.co`, `myworkdayjobs.com`, `workday.com`,
+  `ashbyhq.com`, `smartrecruiters.com`, `comeet.co`, `comeet.com`
+- career subdomains at `google.com`, `meta.com`, `microsoft.com`,
+  `amazon.jobs`, `apple.com`, `nvidia.com`, `intel.com`, `wix.com`,
+  `monday.com`, `checkpoint.com`, `paloaltonetworks.com`, `lightricks.com`
 
-For each remaining candidate, in order of `scraped_at` newest first:
+Bot-detection risk on those is too high; the user does them by hand.
+
+## Step 4 — Apply (per candidate)
 
 1. Open `link` in a new tab. Wait for load.
-2. Read the page-state JSON via the JS tool. If the page contains any of
-   these strings (case-insensitive), STOP applying for this row, mark
-   `status_manual = "Manual review"`, set `notes` to
-   `"auto-apply: CAPTCHA / bot check detected"`, and move to the next candidate:
-   - `recaptcha`
-   - `captcha`
-   - `cloudflare`
-   - `are you human`
-   - `prove you're not a robot`
-   - `hcaptcha`
-3. Find the apply form. On AllJobs this is typically a form with a
-   file-input named `cv` or `resume` and a textarea for a cover note. On
-   Drushim it's a multi-step wizard with fields `first_name`, `last_name`,
-   `email`, `phone`, plus a file input.
-4. Fill the form using these values:
-   - First name: `Mickael`
-   - Last name: leave the user's saved value on the site (they've applied
-     before, the form remembers) OR look it up in `cv/base_cv.html`.
-   - Email: `mickaelz@post.bgu.ac.il`
-   - Phone: look up in `cv/base_cv.html`
-   - CV file: upload the first that exists, in this order:
-       1. `cv/tailored/<id>.pdf` — per-job tailored CV inside the project.
-       2. `cv/base_cv.pdf` — fallback inside the project.
-       3. `C:\Users\user\OneDrive\Documents\עבודה\Mickael Zeitoun - CV.pdf`
-          — the user's canonical CV on Windows. The Chrome `file_upload`
-          tool accepts a Windows path even though it's outside the Cowork
-          mount; it goes through the OS file picker. Note the Hebrew
-          folder name `עבודה`. Use the exact path verbatim — do NOT
-          URL-encode or transliterate it.
-     If none of the three exist, mark `status_manual = "Manual review"`
-     with note `"auto-apply: no CV file"` and skip this row.
-5. Submit the form. Confirm a success state — typically a page with the
-   word "Thank you" / "תודה" / "Application received" / "פנייתך נקלטה".
-6. On success, write the row's `status_manual = "Applied"` and append to
-   `notes` a line like `auto-applied 2026-05-23 09:14`.
-7. On any error (timeout, unexpected page, missing form, network failure),
-   mark `status_manual = "Manual review"` with a note describing what
-   went wrong. Do not crash the whole task — continue to the next candidate.
+2. Read the page state. If it contains any of `recaptcha`, `captcha`,
+   `cloudflare`, `are you human`, `prove you're not a robot`, `hcaptcha`
+   (case-insensitive): stop for this record, append
+   `auto-apply: CAPTCHA / bot check, apply manually` to `notes`, move on.
+   Do not solve or retry.
+3. Find the apply form. AllJobs: a form with a file input named `cv` or
+   `resume` and a textarea for a note. Drushim: a multi-step wizard with
+   `first_name`, `last_name`, `email`, `phone`, plus a file input.
+4. Fill it:
+   - First name `Mickael`; last name — the site's saved value if present,
+     otherwise from `cv/base_cv.html`.
+   - Email `mickaelz@post.bgu.ac.il`; phone from `cv/base_cv.html`.
+   - CV file: `cv/tailored/<id>.pdf` from Step 2 — nothing else.
+5. Submit. Confirm a success state: a page containing `Thank you` / `תודה` /
+   `Application received` / `פנייתך נקלטה` / `קורות החיים נשלחו`.
+6. **On success**, on that record:
+   `status = "applied"`, `status_source = "auto_apply"`,
+   `applied_via = "auto"`, `applied_at = <now, ISO UTC>`,
+   `status_changed_at = <same>`, and append
+   `auto-apply: submitted <YYYY-MM-DD HH:MM> with cv_variant=<variant>` to `notes`.
+7. **On any error** (timeout, unexpected page, missing form, upload failed):
+   leave `status` as `new`, append `auto-apply: failed — <what went wrong>`
+   to `notes`, continue with the next candidate. Never crash the run.
 
-## Step 4 — Save
+## Step 5 — Save and rebuild
 
-Do a field-scoped read-modify-write of `jobs.json`. Only touch
-`status_manual` and `notes` for the candidates you processed.
+Field-scoped read-modify-write of `jobs.json` for the records you touched,
+then run `python build_html.py` so the Applied tab and the follow-up timers
+pick them up.
 
-## Step 5 — Report
+## Step 6 — Report
 
-Print a one-line-per-candidate summary:
+```
+Applied (3):
+  • Picaro — Machine Learning Researcher (cv: data-scientist-ml)
+Skipped, manual host (2):
+  • <company> — <position> (<host>)
+Skipped, CAPTCHA (1): …
+Skipped, no CV variant (0): …
+Failed (0): …
+Not candidates (N): not new / not AllJobs-Drushim / unverified / already attempted
+```
 
-    Applied (3):
-      • Picaro — Machine Learning Researcher
-      • ...
-    Skipped (host) (2):
-      • <company> — <position> (LinkedIn)
-    Manual review (1):
-      • <company> — <position> (CAPTCHA)
-    Untouched (4): not-DS / senior / >2y / etc.
+## Guardrails
+
+- On-demand only. Do not schedule; do not run more than once a day.
+- Max 15 submissions per run; stop at the first CAPTCHA on a board and skip
+  the rest of that board's candidates for this run.
+- Never change a status other than `new → applied`, and only on a confirmed
+  success page.
+- Never upload anything but `cv/tailored/<id>.pdf`.

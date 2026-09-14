@@ -1,95 +1,86 @@
-# Gmail status sync — Cowork scheduled task
+# Gmail status sync — Cowork scheduled task  (schema v2)
 
 Save this as a Cowork scheduled task. Run Sunday–Thursday at 16:05 (right after
-the afternoon scrape, which runs both `/scrape-jobs` and `/scrape-bigtech` at 16:00).
+the afternoon `/scrape-jobs`).
 
 ---
 
-Sync job application statuses from Gmail into `jobs.json`. Do not store emails
-locally; store only a link to the most recent email thread per position, the
-classification, and a derived status.
+Sync application replies from Gmail into `jobs.json`. Do not store emails
+locally; store only a link to the most recent relevant thread per position, its
+classification, and move the status forward when the email warrants it.
 
 ## Step 1 — Load the tracker
 
-Read `jobs.json` at the Cowork project root. It is a JSON array of position
-objects. Each position has at least:
+Read `jobs.json` at the Cowork project root — a JSON array of schema-v2
+records. The fields you use:
 
 ```json
 {
-  "id": "<folder-name-or-scraper-id>",
-  "company": "<company name>",
-  "link": "<listing url>",
-  "last_email": null,
-  "status_auto": null
+  "id": "...", "company": "...", "position": "...",
+  "status": "new|applied|interview|offer|rejected|archived",
+  "status_source": "user|gmail|auto_apply|scraper|maintain",
+  "status_changed_at": "2026-09-11T10:00:00Z",
+  "applied_at": "2026-09-11T10:00:00Z",
+  "last_email": null
 }
 ```
 
-`last_email` (if present) is an object: `{ thread_link, classification, date, subject }`.
-`status_auto` (if present) is one of: `Applied`, `Interview`, `Offer`, `Rejected`.
-
 ### Field ownership — the Gmail task's lane
 
-`jobs.json` is shared with the scraper and the HTML tracker. Stay in your
-lane:
+You may write **only**: `last_email`, and — for forward moves — `status`,
+`status_source` (always `"gmail"`), `status_changed_at`. Nothing else, ever
+(not `applied_at`, not `notes`, not any scraper field). Save with a
+field-scoped patch: read the file, change those fields on the records you
+touched, write it back.
 
-- You may write: `last_email`, `status_auto`. That's it.
-- Leave untouched: everything else on the entry (`position`, `company`,
-  `link`, `scraped_at`, `location`, `date`, `responsibilities`,
-  `requirements`, `nice_to_have`, `status_manual`, `interested`, `notes`).
+## Step 2 — Pick the candidates
 
-When you save, do a field-scoped patch — not a wholesale replacement of the
-entry.
+Check a record when `status` is `applied` or `interview` (an outcome can
+still arrive). Skip `new` (nothing sent yet), `offer`, `rejected`, `archived`.
 
-## Step 2 — Pick the candidates to check
+## Step 3 — Search Gmail per candidate
 
-Skip any position where:
-- `deleted` is `true` (the user soft-deleted it from the HTML tracker — no
-  reason to chase email status for a hidden row), or
-- `status_auto` is `Rejected` or `Offer` — no reason to keep polling once
-  the outcome is final.
+One search per record. Query:
 
-Check every other position.
+```
+(from:(<company>) OR subject:("<position>") OR (from:(<ATS senders>) "<company>")) after:<applied_at minus 1 day>
+```
 
-## Step 3 — Search Gmail per position
+where `<ATS senders>` is the fixed list
+`comeet OR greenhouse OR lever.co OR myworkday OR smartrecruiters OR ashbyhq OR workable OR hibob OR jobvite OR icims`
+— applicant-tracking systems send from their own domains, not the company's,
+so a `from:(company)` search alone misses most confirmations and rejections.
 
-For each candidate, call the Gmail connector with:
+- If `last_email` exists, additionally scope `after:<last_email.date>`.
+- Cap at the 3 most recent threads. Retrieve: sender, subject, snippet,
+  internal date, **thread id**.
+- Token discipline: snippets + subject only. Fetch a body (first ~1500
+  chars) only when Step 5 can't classify from the snippet.
+- Company names with non-ASCII characters: search the Hebrew name and an
+  obvious romanization.
 
-- Query: `from:(<company>) OR from:(<company-domain-guess>)`
-- If `last_email` exists, scope to `after:<last_email.date>` to limit work.
-- Cap at the 3 most recent threads per company.
-- Retrieve: sender, subject, snippet, internal date, **thread id**.
+## Step 4 — Pick the latest relevant thread and compare
 
-Token discipline: snippets + subject only. No full bodies unless Step 5
-cannot classify from the snippet alone.
-
-If the company name contains non-ASCII characters, search by its Hebrew name
-and by an obvious romanization.
-
-## Step 4 — Pick the latest email and compare to what's in the JSON
-
-From the Gmail results for this position, pick the single most recent thread.
-Build its thread link:
+From the results, drop threads that are clearly not about this application
+(newsletters, unrelated recruiters, "talent network" digests with no
+reference to the position). Take the most recent remaining thread and build
 
 ```
 https://mail.google.com/mail/u/0/#inbox/<thread-id>
 ```
 
-**Compare to `jobs.json[i].last_email.thread_link`:**
+If it equals `last_email.thread_link` → nothing to do for this record.
+Otherwise continue.
 
-- If they match exactly → skip this position. Nothing to do.
-- Otherwise → continue to Step 5.
+## Step 5 — Classify and write
 
-## Step 5 — Classify the new email and update the JSON
+Classify subject + snippet with this rubric, checking buckets in priority
+order **Offer → Interview → Rejected → Auto_ack** so a rejection that also
+says "thank you for applying" lands in Rejected. If no keyword matches,
+classify semantically; if still ambiguous, fetch ~1500 chars of the body
+once and re-classify.
 
-Classify the snippet (+ subject) using this rubric. Match keywords
-case-insensitively. Check buckets in priority order **Offer → Interview →
-Rejected → Auto_ack** so a rejection mentioning "thank you for applying"
-still lands in Rejected. If none of the keywords match, classify
-semantically — read the snippet and pick the bucket whose meaning fits
-best. If still ambiguous, fetch the first ~1500 characters of the thread
-body once and re-classify.
-
-**Auto_ack** — application receipt confirmation, no decision yet
+**Auto_ack** — receipt confirmation, no decision
 - English: `received your application`, `thank you for applying`, `thanks for applying`, `we got your submission`, `application received`, `we have received your`, `application confirmation`, `thank you for your interest`, `we appreciate your interest`, `your application has been`, `under review`, `currently reviewing`, `talent acquisition team will`
 - Hebrew: `תודה על פנייתך`, `תודה רבה על פנייתך`, `קיבלנו את קורות החיים`, `קורות החיים נקלטו`, `אישור הרשמה`, `אישור קבלה`, `פנייתך התקבלה`, `תודה על התעניינותך`, `נבחן את מועמדותך`, `נבחן אותם בקפידה`
 
@@ -97,70 +88,65 @@ body once and re-classify.
 - English: `unfortunately`, `regret to inform`, `not moving forward`, `decided to move forward with other`, `other candidates`, `not a match`, `not the right fit`, `different direction`, `position has been filled`, `no longer considering`, `wish you success`, `wish you the best`, `best of luck in your`
 - Hebrew: `מצטערים`, `לצערנו`, `החלטנו שלא להמשיך`, `לא נמשיך`, `לא מתאים`, `אינך מתאים`, `מועמדים אחרים`, `המשרה אוישה`, `בהצלחה בהמשך`, `מאחלים לך הצלחה`
 
-**Interview** — invitation to talk / next step beyond auto-ack
-- English: `interview`, `phone screen`, `phone call`, `video call`, `zoom`, `google meet`, `would like to chat`, `would like to speak`, `set up a time`, `available for a call`, `schedule a call`, `next step`, `meeting invitation`, `talk further`, `move to the next stage`
-- Hebrew: `ראיון`, `ראיון טלפוני`, `שיחת היכרות`, `נשמח להיפגש`, `נשמח לדבר`, `הוזמנת לראיון`, `נקבע מועד`, `נקבע פגישה`, `זמן פנוי`, `שלב הבא`
+**Interview** — invitation to talk / next step
+- English: `interview`, `phone screen`, `phone call`, `video call`, `zoom`, `google meet`, `would like to chat`, `would like to speak`, `set up a time`, `available for a call`, `schedule a call`, `next step`, `meeting invitation`, `talk further`, `move to the next stage`, `home assignment`, `take-home`
+- Hebrew: `ראיון`, `ראיון טלפוני`, `שיחת היכרות`, `נשמח להיפגש`, `נשמח לדבר`, `הוזמנת לראיון`, `נקבע מועד`, `נקבע פגישה`, `זמן פנוי`, `שלב הבא`, `מבחן בית`
 
 **Offer** — formal job offer
 - English: `offer letter`, `pleased to offer`, `extending an offer`, `formal offer`, `compensation package`, `starting date`, `start date`
 - Hebrew: `הצעת עבודה`, `שמחים להציע`, `הצעה רשמית`, `תנאי העסקה`, `מכתב הצעה`
 
-**Other** — anything else; still update `last_email`, but leave `status_auto` unchanged.
+**Other** — anything else. Still update `last_email`; do not touch status.
 
-Map classification → `status_auto`:
-
-| Classification | status_auto |
-|---|---|
-| Auto_ack | Applied |
-| Interview | Interview |
-| Offer | Offer |
-| Rejected | Rejected |
-| Other | (unchanged) |
-
-**Never downgrade.** If the current `status_auto` is `Interview` and the new
-classification is `Auto_ack`, keep `Interview`. Priority order high-to-low:
-`Offer > Interview > Rejected > Applied > (empty)`.
-
-Write the updated object back into `jobs.json[i]`:
+Always write `last_email`:
 
 ```json
-{
-  "last_email": {
-    "thread_link": "https://mail.google.com/mail/u/0/#inbox/<id>",
-    "classification": "Interview",
-    "date": "2026-04-22",
-    "subject": "Re: your application for Data Scientist"
-  },
-  "status_auto": "Interview"
+"last_email": {
+  "thread_link": "https://mail.google.com/mail/u/0/#inbox/<id>",
+  "classification": "Interview",
+  "date": "2026-09-14",
+  "subject": "Re: your application for Data Scientist"
 }
 ```
 
+Then decide the status move. Map classification → target status:
+`Auto_ack → applied`, `Interview → interview`, `Offer → offer`,
+`Rejected → rejected`. Write the move **only if all three hold**:
+
+1. It is forward: rank `applied (1) < rejected (2) < interview (3) < offer (4)`
+   and the target rank is higher than the current `status`'s rank. Never
+   downgrade — an Auto_ack arriving after an Interview keeps `interview`.
+2. The email date is later than the record's `status_changed_at`. A user click
+   that is newer than the email always wins.
+3. The current `status` is not `archived` (you never look at those anyway).
+
+When you move it: `status = <target>`, `status_source = "gmail"`,
+`status_changed_at = <email date as ISO, e.g. "2026-09-14T00:00:00Z">`.
+`applied_at` is never touched here — it was set when the user (or auto-apply)
+applied.
+
 ## Step 6 — Persist and rebuild
 
-After processing all positions:
+1. Save `jobs.json` (pretty-printed, 2-space indent, UTF-8). Only
+   `last_email`, and where moved `status` / `status_source` /
+   `status_changed_at`, differ from what you read in Step 1.
+2. Run `python build_html.py`.
 
-1. Save `jobs.json` (pretty-printed, UTF-8, one entry per array slot). Only
-   `last_email` and `status_auto` on the entries you changed should differ
-   from the version you read at Step 1.
-2. Run `python build_html.py` to rebuild `Job_applications.html` so the changes
-   show up in the tracker.
+## Step 7 — One-line summary
 
-## Step 7 — Print a one-line summary
-
-`Gmail sync: checked N positions, updated M with new emails. Classifications: A Auto_ack / I Interview / O Offer / R Rejected / X Other.`
+`Gmail sync: checked N · updated M last_email · moved: I→interview, O→offer, R→rejected, A→applied · X other · S skipped (newer user status)`
 
 ## Token and call discipline
 
-- One Gmail search per position per run (not per thread).
-- Snippets only; no full bodies unless classification is ambiguous.
+- One Gmail search per record per run.
+- Snippets only; bodies only when classification is ambiguous.
 - No writes to files other than `jobs.json` and the rebuilt HTML.
 - No emails stored locally.
 
 ## Error handling
 
-- **Gmail connector unavailable**: print the error and exit non-zero. Do not
-  partially update `jobs.json` — it's all-or-nothing per run to keep the file
-  consistent.
-- **A position's company name is ambiguous** (e.g., "matrix DnA"): search
-  the literal string as-is; accept that a few threads may be noisy. Your
-  manual status override in the HTML always wins.
+- **Gmail connector unavailable**: print the error and exit. Do not partially
+  update `jobs.json` — all-or-nothing per run.
+- **Ambiguous company name** (e.g. "matrix DnA"): search the literal string;
+  accept some noise. The position-in-subject clause and the user's own status
+  clicks keep it from doing harm.

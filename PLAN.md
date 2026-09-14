@@ -69,11 +69,14 @@ weak = unverified or agency or years_min == years_max; ok otherwise.
 - Gmail sync: snippets + subject only.
 - Fit CVs: reuses a built variant — a few thousand tokens per posting. Building a variant (rare) ~20K.
 
-## Batch 2 (pending)
+## Prompt contract (all writers are on schema v2)
 
-Rewrite `prompts/scrape.md`, `scrape-bigtech.md`, `gmail_sync.md`,
-`auto_apply.md` to schema v2: five LinkedIn queries with a dynamic time window
-from `state.json`, `years_min` parser, verify-or-flag extraction with a
-re-enrich pass, `dedup_key`, clinical-only medical filter, agency flag, Drushim
-already-applied import, ATS-sender matching in Gmail sync, fitted-CV upload +
-`applied_via: auto` in auto-apply. Then one live `/scrape-jobs` run to verify.
+`prompts/scrape.md` and `scrape-bigtech.md` read `config.json` for every gate,
+compute the LinkedIn window from `state.json`, mark records `extraction_ok`
+or leave them unverified (never `["N/A"]`), re-verify unverified `new`
+records (max 2 attempts), flag agencies, drop duplicates by `dedup_key`, and
+import Drushim "CV already sent" cards as `applied`. `gmail_sync.md` matches
+company, position-in-subject and ATS senders, and only moves status forward
+when the email is newer than `status_changed_at`. `auto_apply.md` is
+on-demand only, requires `extraction_ok` and a fitted CV, and writes
+`applied_via: auto`.

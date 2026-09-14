@@ -3,13 +3,6 @@
 Semi-automated pipeline for junior AI / ML / Data Science roles in Israel.
 Claude scrapes, tracks replies, and fits CVs; you review and apply.
 
-> **Migration status.** The data model, `build_html.py`, the dashboard, the
-> CV-fit prompt and the skill are on schema v2. `prompts/scrape.md`,
-> `scrape-bigtech.md`, `gmail_sync.md` and `auto_apply.md` still write the v1
-> fields (`status_manual`, `status_auto`, `interested`, `deleted`) — they are
-> rewritten in Batch 2. Until then, `build_html.py` migrates any v1 record it
-> finds on every run, so the pipeline keeps working either way.
-
 ## One-time setup
 
 ### 1. Prerequisites
@@ -169,7 +162,7 @@ Three durable base CVs in `cv/variants/`:
 
 **Edits don't appear after a rebuild** — the dashboard reads the embedded snapshot; if your browser is linked to the folder it reloads `jobs.json` on open. If not linked, edits only exist in that browser's local cache — link the folder (⋯ → your local edits get written in) or Export JSON.
 
-**`build_html.py` says it migrated records** — a writer that still uses v1 fields touched `jobs.json` (see Migration status at the top). Harmless; the record is upgraded in place and a backup is in `backups/`.
+**`build_html.py` says it migrated records** — something wrote v1 fields (`status_manual`, `status_auto`, `interested`, `deleted`) into `jobs.json`, most likely an old copy of a shortcut/task. Harmless — the record is upgraded in place and a backup is in `backups/` — but re-install the shortcut/task from the current `prompts/` text.
 
 ## What's not automated (and why)
 

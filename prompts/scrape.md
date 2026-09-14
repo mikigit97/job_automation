@@ -1,107 +1,118 @@
-# Chrome shortcut: /scrape-jobs
+# Chrome shortcut: /scrape-jobs  (schema v2)
 
 Save this as a Claude in Chrome shortcut. Schedule it Sunday–Thursday at 08:00
-and 16:00. The shortcut scrapes three Israeli job boards and appends new
-postings directly to `jobs.json` at the Cowork project root. There is no
-`positions/` folder, no xlsx, no intermediate markdown.
+and 16:00. It scrapes three Israeli job boards and appends new postings to
+`jobs.json` at the Cowork project root, then rebuilds the dashboard.
 
-The four big-company careers pages (NVIDIA, Google, Apple, Amazon) live in
-a separate shortcut, `/scrape-bigtech`, scheduled once a day at 16:00. See
-`scrape-bigtech.md`.
+The big-company careers pages (NVIDIA, Google, Apple, Amazon) live in a
+separate shortcut, `/scrape-bigtech`, scheduled **weekly** (Sunday 16:00).
 
 ---
 
-You are running the Israel DS / AI-engineer job scraper. Follow the steps
-below exactly. Use the accessibility tree or page-state JavaScript, never
-screenshots.
+You are running the Israel junior AI / ML / Data-Science job scraper. Follow
+the steps below exactly. Use the accessibility tree or page-state JavaScript,
+never screenshots.
 
-## Step 0 — Load the existing tracker
+## Step 0 — Load the tracker, the config and the scrape state
 
-Read `jobs.json` from the Cowork project root. It is a JSON array of objects
-with at least these keys:
+Read three files from the Cowork project root:
+
+1. `config.json` — thresholds and pattern lists. You will use:
+   `years_max`, `role_families` (`ai`, `ds`), `junior_titles`,
+   `seniority_titles`, `teaching_titles`, `clinical_titles`,
+   `anonymous_companies`, `drop_anonymous_alljobs`, `agencies`,
+   `agency_patterns`. Each pattern list is a list of regex fragments; treat
+   a list as one case-insensitive alternation (`(?:a|b|c)`, flag `i`).
+2. `jobs.json` — a JSON array of records in **schema v2**:
 
 ```json
 {
   "id": "<company-first-word>-<6-char-hash-of-link>",
-  "position": "...",
-  "company": "...",
-  "source": "LinkedIn|AllJobs|Drushim",
-  "link": "https://...",
-  "scraped_at": "2026-04-22T15:58:39Z",
-  "location": null,
-  "date": null,
-  "description": null,
-  "responsibilities": [],
-  "requirements": [],
-  "nice_to_have": [],
-  "last_email": null,
-  "status_auto": null,
-  "status_manual": null,
-  "interested": null,
-  "notes": "",
-  "recruiter_phone": ""
+  "position": "...", "company": "...", "source": "LinkedIn|AllJobs|Drushim",
+  "link": "https://...", "scraped_at": "2026-09-14T08:00:00Z",
+  "location": null, "date": null, "description": null,
+  "responsibilities": [], "requirements": [], "nice_to_have": [],
+  "extraction_ok": false, "extraction_attempts": 1, "years_min": null,
+  "agency": false, "dedup_key": "company|position",
+  "status": "new", "status_source": "scraper", "status_changed_at": "2026-09-14T08:00:00Z",
+  "applied_at": null, "applied_via": null, "followed_up_at": null, "archive_reason": null,
+  "last_email": null, "cv_variant": null, "cv_tailored_at": null,
+  "notes": "", "recruiter_phone": ""
 }
 ```
 
-`description` is the free-form prose section that sits at the top of most
-postings — "About the role", "About the company", or just an unlabeled lead
-paragraph before "Responsibilities". It's separate from the bulleted
-responsibilities/requirements/nice-to-have arrays. When the scraper can't
-find a distinct description block, leave it as `null`.
+   If you meet a record with the old fields (`status_manual`, `status_auto`,
+   `interested`, `deleted`) leave it exactly as it is — `build_html.py`
+   migrates it at the end of this run.
+
+3. `state.json` — `{"sources": {"LinkedIn": {"last_scrape_at": "..."}, ...}}`.
+   Missing file or key → treat as never scraped.
 
 Keep in memory:
-- `existing_links` — set of every `link` currently in the file.
-- `existing_by_link` — map from link to the full object. When you see the
-  same link again, you will enrich the existing entry rather than duplicate it.
+- `existing_by_link` — link → record, for **every** record regardless of
+  status. Archived and rejected records are the memory that stops you from
+  re-adding a posting the user already dismissed.
+- `existing_keys` — the set of every record's `dedup_key`.
+- `to_verify` — records with `status == "new"`, `extraction_ok == false`,
+  `extraction_attempts < 2`, and `source` in LinkedIn/AllJobs/Drushim. You
+  will re-open these (Step 1b) before scraping anything new.
 
 ### Field ownership — the scraper's lane
 
-`jobs.json` is the single store for every writer. Stay in your lane:
+| Fields | Scraper may write? |
+|---|---|
+| `id`, `position`, `company`, `source`, `link`, `scraped_at`, `location`, `date`, `description`, `responsibilities`, `requirements`, `nice_to_have`, `extraction_ok`, `extraction_attempts`, `years_min`, `agency`, `dedup_key` | Yes. On an existing record: only fill fields that are empty/null, and update `extraction_ok` / `extraction_attempts` / `years_min` when you re-verify it. |
+| `status`, `status_source`, `status_changed_at`, `applied_at`, `applied_via` | Only in one case: a Drushim posting the user already sent a CV to (Step 3). Otherwise never. |
+| `followed_up_at`, `archive_reason`, `notes`, `recruiter_phone`, `last_email`, `cv_variant`, `cv_tailored_at` | Never. |
 
-| Field | Owned by | Scraper may touch? |
-|---|---|---|
-| `id`, `position`, `company`, `source`, `link`, `scraped_at`, `location`, `date`, `description`, `responsibilities`, `requirements`, `nice_to_have` | Scraper | Yes (only fills empty/null) |
-| `last_email`, `status_auto` | Gmail sync task | No |
-| `status_manual`, `interested`, `notes`, `recruiter_phone` | User (via the HTML tracker) | No |
+A non-empty value in any scraper field means someone (a previous run, or the
+user via Edit) already set it — do not overwrite it.
 
-The user can also override any scraper-owned field from the HTML's Edit
-dialog. A non-empty value in any of those fields means the user has touched
-it, so the scraper must not overwrite it on dedup-enrich.
+## Step 0.5 — Helpers you will need (define once)
 
-When you re-see an existing posting, enrich only the scraper-owned fields.
-Leave all other fields exactly as you found them.
+```javascript
+// Lower bound of a stated years-of-experience requirement, or null.
+// A number only counts when "experience"/"ניסיון" appears within 60 chars.
+const EXP_CTX = /experience|exp\.|ניסיון|נסיון/i;
+function yearsMin(text) {
+  const t = text || ''; const found = [];
+  const rxs = [
+    /(\d{1,2})\s*(?:\+|-|–|to)?\s*(?:\d{1,2})?\s*\+?\s*(?:years?|yrs?)\b/gi,
+    /(\d{1,2})\s*(?:\+|-|–)?\s*(?:\d{1,2})?\s*\+?\s*שנ(?:ה|ים|ות)/g,
+  ];
+  for (const rx of rxs) for (const m of t.matchAll(rx)) {
+    const lo = Math.max(0, m.index - 60), hi = m.index + m[0].length + 60;
+    if (EXP_CTX.test(t.slice(lo, hi))) found.push(parseInt(m[1], 10));
+  }
+  for (const m of t.matchAll(/שנתיים/g)) {
+    const lo = Math.max(0, m.index - 60), hi = m.index + 66;
+    if (EXP_CTX.test(t.slice(lo, hi))) found.push(2);
+  }
+  return found.length ? Math.min(...found) : null;
+}
 
-## Step 0.5 — Relevance gate (skip-on-write)
+// Normalized company|position key. Mirrors build_html.py's dedup_key().
+function norm(s) {
+  return String(s || '').normalize('NFKC').toLowerCase()
+    .replace(/\((?:m\/f|f\/m|w\/m|m\/w|m\/f\/d|h\/f)\)|\b(?:m\/f|f\/m)\b|דרוש\/ה|דרושה|דרושים|דרושות|דרוש|\/ת\b|\/ה\b|\/ית\b|\/ות\b/g, ' ')
+    .replace(/\b(?:ltd\.?|inc\.?|llc|gmbh|corp\.?|co\.?)\b|בע"?מ|בע״מ/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+}
+function dedupKey(company, position) { return `${norm(company)}|${norm(position)}`; }
 
-A scraped posting is added to `jobs.json` ONLY if it passes all three gates
-below. Discard everything else without writing — the user does not want
-irrelevant titles in the tracker.
+// Verified = enough posting text to judge the role.
+function extractionOk(rec) {
+  return (rec.requirements || []).length >= 2 || String(rec.description || '').length >= 200;
+}
 
-### Title gate
-
-The `position` string must match one of these (case-insensitive). English:
-`data scien*`, `machine learning`, ` ML ` / ` ML/`, ` AI `, `deep learning`,
-`applied scien*`, `research scien*`, `research engineer`, `NLP`,
-`computer vision`, `LLM`, `gen ai`, `MLOps`, `algorithm engineer`,
-`algorithm developer`. Hebrew: `מדען נתונים`, `למידת מכונה`,
-`בינה מלאכותית`, `אלגוריתמ`.
-
-### Seniority gate
-
-Discard if the title contains any of: `senior`, `sr.`, `lead`, `principal`,
-`staff`, `manager`, `director`, `head of`, `architect`, `vp` (English) or
-`בכיר`, `מנהל`, `ראש צוות` (Hebrew). These imply >2 years of experience.
-
-### Experience gate
-
-Scan `requirements`, `responsibilities`, and `description` for digit-followed-by-
-`year(s)`, `yr(s)`, `שנה`/`שנים`/`שנות`. Also count the bare word `שנתיים`
-(= 2 years). If the **lowest** number found is >2, discard. If no
-years-of-experience signal is present, keep (treat as junior-friendly).
-
-Build `build_html.py` runs the same gate as a safety net — anything that
-slips through gets hard-deleted on the next rebuild — but you should drop
-irrelevant rows here so the user never sees them in the tracker.
+// Agency = listed in config.agencies (whole-word match on the normalized name)
+// or matches config.agency_patterns.
+function isAgency(company, cfg) {
+  const c = ' ' + norm(company) + ' ';
+  if (cfg.agencies.some(a => c.includes(' ' + norm(a) + ' '))) return true;
+  return new RegExp('(?:' + cfg.agency_patterns.join('|') + ')', 'i').test(c);
+}
+```
 
 ## Step 1 — Boards
 
@@ -109,11 +120,32 @@ Open each board URL below in its own tab.
 
 ### Board 1 — LinkedIn
 
+Run **each** of these keyword queries as its own search (build the URL with
+`encodeURIComponent(q)`), newest first, and process at most **25 cards per
+query**:
+
+| # | `keywords` |
+|---|---|
+| 1 | `"data scientist"` |
+| 2 | `"machine learning engineer" OR "ML engineer"` |
+| 3 | `"AI engineer"` |
+| 4 | `"NLP engineer" OR "LLM engineer"` |
+| 5 | `"algorithm developer" OR "algorithm engineer"` |
+| 6 | `מדען נתונים OR למידת מכונה OR מהנדס אלגוריתמים` |
+
 ```
-https://www.linkedin.com/jobs/search/?keywords=%22data%20scientist%22%20OR%20%22AI%20engineer%22&location=Israel&f_TPR=r86400
+https://www.linkedin.com/jobs/search/?keywords=<encoded q>&location=Israel&f_TPR=r<WINDOW_SECONDS>
 ```
 
-- `f_TPR=r86400` filters to the last 24 hours.
+- `f_TPR=r<seconds>` is the time window. Compute `WINDOW_SECONDS` from
+  `state.json` (Step 0): seconds since `sources.LinkedIn.last_scrape_at`,
+  rounded up to the hour, **minimum 21600 (6h), maximum 604800 (7d)**. No
+  entry yet → 604800. This is what makes a day with Chrome closed
+  recoverable.
+- Do **not** add `f_E` (experience-level). Israeli postings are tagged
+  inconsistently; the gates in Step 2 do that job.
+- The same job will appear under several queries — dedup by job id in
+  memory before opening any detail view.
 - Requires login; the session cookie persists across runs.
 - Job cards: `listitem` elements in the search results list; each has
   `a[href*="/jobs/view/"]`.
@@ -124,7 +156,7 @@ the search results page when a job is selected via the `currentJobId` query
 parameter. To get each job's description:
 
 ```
-https://www.linkedin.com/jobs/search/?keywords=...&location=Israel&f_TPR=r86400&currentJobId=<ID>
+https://www.linkedin.com/jobs/search/?keywords=<encoded q>&location=Israel&f_TPR=r<WINDOW_SECONDS>&currentJobId=<ID>
 ```
 
 Navigate to that URL, wait ~5 seconds, then run:
@@ -172,12 +204,12 @@ the `#job-details` id.
 `extractLinkedIn()` returns `null`, OR if it returns an object whose
 `description`, `resp`, and `req` are all empty, treat the extraction as
 failed and run the standalone-view fallback (below) plus the
-poster-requirements sweep before accepting the record. A record with
-`requirements: ["N/A"]` should only be written after BOTH the search-view
-extractor and the standalone-view fallback came back empty.
+poster-requirements sweep before accepting the record. A record is written
+with `requirements: []` and `extraction_ok: false` only after BOTH the
+search-view extractor and the standalone-view fallback came back empty.
 
 If a card has `disabled` on `a.job-card-container__link` or is a "Promoted"
-card, `#job-details` often will not render. Before giving up with `N/A`,
+card, `#job-details` often will not render. Before giving up (unverified),
 try the **standalone-view fallback** described below.
 
 **Standalone-view fallback (when `#job-details` is missing).** A direct
@@ -223,15 +255,15 @@ function extractLinkedInStandalone() {
 ```
 
 Merge the standalone result and the poster-requirements sweep into the
-record, then continue. Only write `requirements: ["N/A"]` if BOTH paths
-return empty.
+record, then continue. Only leave the record unverified (`requirements: []`,
+`extraction_ok: false`) if BOTH paths return empty.
 
 **"Requirements added by the job poster" — capture separately.** LinkedIn
 renders a structured poster-added requirements block (commute, onsite,
 years-of-experience by skill — e.g., "5+ years of work experience with
 Python"). On collapsed posts and on some templates this block lives outside
-`#job-details`, so `extractLinkedIn()` misses it and the card lands in
-`jobs.json` with `requirements: ["N/A"]`, bypassing the experience gate.
+`#job-details`, so `extractLinkedIn()` misses it and the card would land in
+`jobs.json` unverified, bypassing the years gate.
 Sweep the whole page for it and merge into the requirements array before
 running the Step 2 filters:
 
@@ -260,7 +292,7 @@ function extractLinkedInPosterRequirements() {
 NBN Connect's Computer Vision Engineer post (2026-05-23) is the canonical
 failure case — `#job-details` returned nothing, but the poster block listed
 `5+ years of work experience with Python`. With the sweep above the
-Step 2d gate catches it.
+Step 2g years gate catches it.
 
 ### Board 2 — AllJobs
 
@@ -466,14 +498,16 @@ function stripHtml(s) {
 // flagged. Validated 2026-04-26: that direction marked 25/25 as applied
 // when only 17 actually were. The inverse direction lands on the correct
 // 17.
-const APPLIED_RE = /שלחת\s*קו["׳']ח\s*ב/;
-window.__DJ_APPLIED = new Set();
+const APPLIED_RE = /שלחת\s*קו["׳']ח\s*ב\s*-?\s*(\d{2})-(\d{2})-(\d{4})/;
+window.__DJ_APPLIED = new Map();   // JobCode -> "YYYY-MM-DD" the CV was sent
 for (const el of document.querySelectorAll('*')) {
   const ownText = [...el.childNodes]
     .filter(n => n.nodeType === 3)
     .map(n => n.textContent)
     .join(' ');
-  if (!APPLIED_RE.test(ownText)) continue;
+  const dm = ownText.match(APPLIED_RE);
+  if (!dm) continue;
+  const appliedDate = `${dm[3]}-${dm[2]}-${dm[1]}`;
   // From the badge text node, walk up until an ancestor contains a
   // /job/<id>/ link — that link belongs to the card that owns the badge.
   let node = el;
@@ -481,7 +515,7 @@ for (const el of document.querySelectorAll('*')) {
     const a = node.querySelector?.('a[href*="/job/"]');
     if (a) {
       const m = a.href.match(/\/job\/(\d+)\//);
-      if (m) { window.__DJ_APPLIED.add(m[1]); break; }
+      if (m) { window.__DJ_APPLIED.set(m[1], appliedDate); break; }
     }
     node = node.parentElement;
   }
@@ -495,131 +529,88 @@ window.__DJ = jobs.map(j => ({
   location: j.JobContent.Zones?.[0]?.CityName || '',
   date:     (j.JobInfo.Date || '').slice(0, 10),
   desc:     stripHtml(j.JobContent.AboutCompany || j.JobContent.JobDescription || '').slice(0, 600) || null,
-  resp:     stripHtml(j.JobContent.Description || '').slice(0, 200),
-  req:      stripHtml(j.JobContent.Requirements || '').slice(0, 200),
-  applied:  window.__DJ_APPLIED.has(String(j.JobInfo.JobCode)),
+  resp:     stripHtml(j.JobContent.Description || '').slice(0, 500),
+  req:      stripHtml(j.JobContent.Requirements || '').slice(0, 600),
+  applied:  window.__DJ_APPLIED.get(String(j.JobInfo.JobCode)) || null,   // date string or null
 }));
+// Split resp/req into lines on sentence/bullet boundaries (". ", " - ", "•", "·")
+// so they become arrays; keep at most 6 requirement lines and 4 responsibilities.
 // If output gets truncated, stash window.__DJS = JSON.stringify(window.__DJ)
 // and read it in slices: window.__DJS.slice(0, 3600), .slice(3600, 7200), ...
 ```
 
-## Step 2 — Filter out postings you won't apply to
 
-Apply these three rejection rules to every extracted posting *before* building
-the record. If any rule matches, drop the posting entirely — do not write it
-to `jobs.json`, do not count it as "enriched", do not surface it in the
-summary. The goal is a tracker that only contains postings worth reviewing.
+## Step 1b — Re-verify unverified postings (before scraping new ones)
 
-### 2a. Seniority filter
+For each record in `to_verify` (Step 0), open its `link` and run the same
+extractor you would use for its `source` (LinkedIn: search-view with
+`currentJobId`, then the standalone fallback and the poster-requirements
+sweep; AllJobs: the card parser on the results page or the
+`UploadSingle.aspx` page; Drushim: `window.__NUXT__.data[0].jobData`).
+Then:
 
-Reject if the position title matches any of these (case-insensitive, word
-boundaries):
+- Merge into the record only fields that are empty: `description`,
+  `responsibilities`, `requirements`, `nice_to_have`, `location`, `date`.
+- `extraction_attempts += 1`; `extraction_ok = extractionOk(record)`;
+  `years_min = yearsMin(all text)`.
+- Never touch `status` or any user field. If it is still unverified after
+  this, leave it — the dashboard shows it as *unverified* and the user can
+  paste the requirements by hand.
 
-- English: `senior`, `sr\.?`, `lead`, `principal`, `staff`, `head of`,
-  `director`, `vp`, `chief`
-- Hebrew: `בכיר`, `בכירה`, `ראש צוות`, `מוביל`, `מובילה`, `מנהל.?ת?` when
-  paired with a seniority signal (e.g., `מנהל.ת קבוצה`, `מנהל.ת מחלקה`)
+Cap this pass at 10 records per run; oldest `scraped_at` first.
 
-Do *not* reject entry/mid titles like "Data Scientist", "ML Engineer",
-"Junior Data Scientist", "Associate AI Engineer".
+## Step 2 — Gates: decide what gets written
 
-### 2b. AllJobs VIP-only filter
+Run these on every extracted posting **before** building a record. Gates
+marked *drop* discard the posting (count it, don't write it). Gates marked
+*flag* set a field and continue.
 
-Reject if `source == "AllJobs"` and the company name equals `חברה חסויה`
-(exactly, after trimming whitespace). These are postings where AllJobs hides
-the company name unless you're a VIP subscriber. Without VIP access the
-posting is useless — you can't research the company before applying — so
-they don't belong in the tracker. Partial matches like `NLP — חברה חסויה`
-also count.
+| # | Gate | Where | Rule | Outcome |
+|---|---|---|---|---|
+| 2a | Role family | title | must match `role_families.ai` **or** `role_families.ds` | *drop* if neither (`family`) |
+| 2b | Seniority | title | matches `seniority_titles` | *drop* (`senior`) |
+| 2c | Teaching | title | matches `teaching_titles` | *drop* (`teaching`) |
+| 2d | Clinical | title | matches `clinical_titles` | *drop* (`clinical`). This replaced the old whole-domain medical filter: ML roles at medtech companies are **kept**. |
+| 2e | Anonymous employer | company | `source == "AllJobs"` and company matches `anonymous_companies`, when `drop_anonymous_alljobs` is true | *drop* (`anonymous`) |
+| 2f | Verified? | text | `extraction_ok = extractionOk(rec)` | *flag* — never drop for this |
+| 2g | Years | text | only if `extraction_ok`: `years_min = yearsMin(text)`; drop when `years_min > years_max` | *drop* (`years`). Unverified postings are never gated on years. |
+| 2h | Agency | company | `agency = isAgency(company, cfg)` | *flag* |
+| 2i | Already known | link | `link` in `existing_by_link` | go to Step 4 (enrich), don't build a new record |
+| 2j | Duplicate | key | `dedupKey(company, position)` in `existing_keys` | *drop* (`duplicate`) — same job via another board/agency, or one the user already handled |
 
-### 2c. Medical/healthcare filter
-
-Reject if any of these signals appear in the company name, position title,
-or the concatenated responsibilities + requirements text:
-
-- English: `medical`, `medicine`, `clinical`, `clinic`, `hospital`,
-  `pharma`, `pharmaceutical`, `biotech`, `biomed`, `healthcare`,
-  `health-tech`, `health tech`, `patient`, `diagnostic`, `genomic`,
-  `oncology`, `radiology`
-- Hebrew: `רפואי`, `רפואה`, `תרופות`, `פארמה`, `בריאות`, `בית חולים`,
-  `מרפאה`, `קופת חולים`, `ביו-רפואי`, `ביוטכנולוגיה`
-
-A DS role at a medical device or digital health company is out of scope.
-Generic insurance ("ביטוח") by itself is *not* a trigger.
-
-### 2d. Experience-threshold filter
-
-Reject if any 4+-years-of-experience signal appears in the posting's
-requirements, responsibilities, OR description. Scanning all three fields
-(not just requirements) is the safety net for cards where one extractor
-section came back empty — e.g., a LinkedIn post whose `#job-details` panel
-didn't render, leaving `requirements: ["N/A"]` while the years-of-experience
-line sits in the description block or in the poster-added requirements
-block.
-
-```javascript
-function demandsTooMuchExperience(job) {
-  const text = [
-    ...(job.requirements || []),
-    ...(job.responsibilities || []),
-    job.description || '',
-  ].join(' ').toLowerCase();
-  // English: "4 years", "4+ years", "at least 4 years", "minimum 5 yrs", "4-7 years"
-  const en = /\b(4|5|6|7|8|9|1\d)\s*\+?\s*(?:-\s*\d+\s*)?(?:years?|yrs?)\b/;
-  // Hebrew: "4 שנות ניסיון", "לפחות 5 שנים", "4+ שנים"
-  const he = /(?:לפחות\s*)?(\d+)\s*\+?\s*(?:שנות|שנים)\b/;
-  if (en.test(text)) return true;
-  const m = text.match(he);
-  if (m && parseInt(m[1], 10) >= 4) return true;
-  return false;
-}
-```
-
-Nice-to-haves don't count — only hard requirements. If the posting only says
-"3+ years" or "2-3 years", keep it.
-
-### 2f. Drushim "CV already sent" filter
-
-Reject if `source == "Drushim"` and the card's `applied` flag is true. This
-flag is set by the DOM-side check in Step 1 — Drushim renders
-`שלחת קו"ח ב - DD-MM-YYYY` on cards whose CV the logged-in user has
-already submitted. Re-applying clutters the tracker and risks duplicate
-applications, so drop them entirely.
-
-### 2e. What to log
-
-Track counters per reason (`seniority`, `vip`, `medical`, `experience`,
-`already_applied`) so the summary at the end reports them. Do not write
-dropped postings anywhere.
+Notes:
+- "Data Scientist מנוסה" (experienced) is not a seniority word; "לחברה
+  מובילה" (a leading company) is not "מוביל צוות". Trust the config patterns.
+- Drushim postings the user already sent a CV to are **not** dropped — see
+  Step 3, they are imported as applied.
 
 ## Step 3 — Build each job record
 
-For every *surviving* job (one that passed all three filters), build an
-object with exactly these fields:
+For every surviving posting, build the schema-v2 object shown in Step 0:
 
 | Field | Value |
 |---|---|
-| `id` | `<lowercase-first-word-of-company>-<6-char-md5-of-link>` |
-| `position` | Position title |
-| `company` | Company display name |
-| `source` | `LinkedIn` / `AllJobs` / `Drushim` |
-| `link` | Canonical URL — see template below per source |
-| `scraped_at` | ISO-8601 UTC timestamp of this run |
-| `location` | City (nullable; leave `null` if the board didn't show one) |
-| `date` | Posting date as `YYYY-MM-DD` (nullable) |
-| `description` | Free-form prose lead-in (string, ≤600 chars; `null` if no distinct description block) |
-| `responsibilities` | Array of strings (4 max; `["N/A"]` if extraction failed) |
-| `requirements` | Array of strings (4 max; `["N/A"]` if extraction failed) |
-| `nice_to_have` | Array of strings (2 max; `[]` if none) |
-| `last_email` | `null` |
-| `status_auto` | `null` |
-| `status_manual` | `null` |
-| `interested` | `null` |
-| `notes` | `""` |
-| `recruiter_phone` | `""` |
+| `id` | `<lowercase-first-word-of-company>-<6-char-md5-of-link>` (Hebrew first words kept as-is; on collision append `-2`, `-3`…) |
+| `position`, `company`, `source`, `location`, `date` | as extracted (`date` as `YYYY-MM-DD` or null) |
+| `link` | canonical URL from the template below — never the DOM anchor's href |
+| `scraped_at`, `status_changed_at` | ISO-8601 UTC timestamp of this run |
+| `description` | lead-in prose, ≤600 chars, or null |
+| `responsibilities` / `requirements` / `nice_to_have` | arrays of strings (max 4 / 6 / 3). **Never write `["N/A"]`** — an empty array plus `extraction_ok: false` is the honest form. |
+| `extraction_ok`, `extraction_attempts: 1`, `years_min`, `agency`, `dedup_key` | from Step 2 |
+| `status: "new"`, `status_source: "scraper"` | default |
+| `applied_at`, `applied_via`, `followed_up_at`, `archive_reason`, `last_email`, `cv_variant`, `cv_tailored_at` | null |
+| `notes: ""`, `recruiter_phone: ""` | empty |
 
-Canonical `link` templates per source — always build the URL yourself from
-the extracted id, never trust the DOM anchor's `href`:
+**Drushim "CV already sent" import.** When the card's `applied` value is a
+date (Step 1, Board 3), the user applied to this job outside the pipeline.
+Write it with `status: "applied"`, `status_source: "scraper"`,
+`applied_via: "manual"`, `applied_at: "<that date>"`,
+`status_changed_at: "<that date>"`, and `notes: "imported: CV sent via
+Drushim on <date>"`. It still passes through Step 2 gates first (a senior
+posting the user applied to by hand is still imported — skip gates 2a–2g for
+applied imports; apply 2i/2j only).
+
+Canonical `link` templates:
 
 | Source | Template |
 |---|---|
@@ -627,60 +618,58 @@ the extracted id, never trust the DOM anchor's `href`:
 | AllJobs | `https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=<ID>` |
 | Drushim | `https://www.drushim.co.il/job/<JobCode>/<hash-lowercase>/` |
 
-The AllJobs rule matters: the result page's anchors point at
-`ViewJob.aspx`, which errors out on direct load. `UploadSingle.aspx` is the
-one that actually renders the posting.
-
-Notes on `id`:
-- Hebrew first words are preserved as-is (`הראל-836bc4`, `דיאלוג-0184c0`).
-- On rare collisions across boards, append `-2`, `-3`, etc.
-
 ## Step 4 — Dedup against `jobs.json`
 
-For each built job:
+For each built record:
 
-- **If `job.link` is in `existing_links`**: do not append. If the existing
-  entry has `deleted: true` (the user soft-deleted it from the HTML
-  tracker), leave it untouched — do not enrich, do not flip the flag back.
-  Otherwise, enrich the existing entry only for fields that are currently
-  null or empty — `location`, `date`, `description`, `responsibilities`,
-  `requirements`, `nice_to_have`. Never touch `last_email`, `status_auto`,
-  `status_manual`, `interested`, `notes`, `recruiter_phone`, or the
-  original `scraped_at`. Treat `responsibilities: ["N/A"]` as empty for
-  the purpose of enrichment. A non-empty existing value is the user's
-  edit (or a previous scrape) and must be left alone.
-- **Otherwise**: append the new object to the array.
+- **`link` already in `existing_by_link`** → do not append. If the existing
+  record's `status` is `archived` or `rejected`, leave it untouched.
+  Otherwise enrich only empty scraper fields (`location`, `date`,
+  `description`, `responsibilities`, `requirements`, `nice_to_have`), then
+  recompute `extraction_ok` / `years_min` if anything was filled. Never
+  touch `scraped_at` or any user field.
+  - Special case: the existing record is Drushim with `status: "new"` and
+    the card now shows `applied` = a date → the user applied by hand. Set
+    `status: "applied"`, `status_source: "scraper"`, `applied_via: "manual"`,
+    `applied_at: <date>`, `status_changed_at: <date>`, append the import
+    note. This is the only status write the scraper ever makes.
+- **`dedup_key` already in `existing_keys`** → drop (`duplicate`).
+- **Otherwise** → append.
 
-## Step 5 — Write `jobs.json` and rebuild
+## Step 5 — Write `jobs.json`, `state.json`, and rebuild
 
-All-or-nothing per run — hold the updated array in memory, then overwrite the
-file once at the end:
+All-or-nothing per run — hold the updated array in memory, then write once:
 
-1. Write `jobs.json` pretty-printed (2-space indent, UTF-8, `ensure_ascii=false`).
-2. Run `python build_html.py` to regenerate `Job_applications.html` with the
-   updated data embedded inline. As of 2026-05-23, the same script also
-   refreshes the embedded `const JOBS = [...]` array and `Snapshot:`
-   timestamp in `Job_applications_mobile.html` (no-op if that file doesn't
-   exist). You do not need to invoke a separate mobile-rebuild step.
+1. `jobs.json`: pretty-printed, 2-space indent, UTF-8, `ensure_ascii=false`.
+2. `state.json`: for each board you **actually finished** (not skipped on
+   login/CAPTCHA), set `sources.<Source>.last_scrape_at` to this run's
+   timestamp. A skipped board keeps its old value so the next run's window
+   still covers the gap.
+3. Run `python build_html.py`. It migrates any v1 records, archives
+   irrelevant/duplicate `new` postings that slipped through, computes fit
+   tiers, and rebuilds `Job_applications.html`. Include its printed summary
+   in your report.
 
 Do not write any other files.
 
 ## Step 6 — Summary line
 
-Print one line at the end:
-
 ```
-Scraped N new positions across LinkedIn / AllJobs / Drushim (E enriched, D duplicates, F filtered: f_s senior / f_v VIP / f_m medical / f_e 4+yrs / f_a already-applied). HTML rebuilt.
+Scraped N new (LI:a AJ:b DR:c) · E enriched · V re-verified (v_ok now verified) · I imported as applied (Drushim) · D duplicates · filtered: f_f family / f_s senior / f_t teaching / f_c clinical / f_a anonymous / f_y years · flagged: g agency, u unverified · window LI r<seconds> · build: <build_html.py summary>
 ```
 
 ## Guardrails
 
-- **Login / CAPTCHA**: pause and wait for the user. Do not retry automatically.
-- **Runtime cap**: 5 minutes total. If exceeded, write whatever you already
-  collected and stop.
-- **Same listing seen 10 times in a row**: move to the next board.
-- **`requests` in the Python sandbox is proxy-blocked** — do not try to fetch
-  boards from Python. All scraping goes through Claude in Chrome.
-- **File writes are unlocked files only.** If `jobs.json` happens to be
-  write-locked, print the error, do not retry, do not fall back to a dated
-  sibling file.
+- **Login / CAPTCHA**: pause and wait for the user. Do not retry
+  automatically. If it isn't resolved, skip that board and leave its
+  `state.json` entry unchanged.
+- **Runtime cap**: 6 minutes total. If exceeded, write whatever you already
+  collected (Step 5) and stop.
+- **Per query**: at most 25 LinkedIn cards; **same listing seen 10 times in a
+  row**: move on.
+- **`requests` in the Python sandbox is proxy-blocked** — all scraping goes
+  through Claude in Chrome.
+- **Never write `["N/A"]`, never delete a record, never change a status**
+  except the Drushim applied import.
+- **If `jobs.json` is write-locked**, print the error and stop; do not fall
+  back to a sibling file.
