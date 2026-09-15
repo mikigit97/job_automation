@@ -12,8 +12,9 @@ separate shortcut, `/scrape-bigtech`, scheduled **weekly** (Sunday 16:00).
 ---
 
 You are running the Israel junior AI / ML / Data-Science job scraper. Follow
-the steps below exactly. Use the accessibility tree or page-state JavaScript,
-never screenshots.
+the steps below exactly. Read pages with `get_page_text` (rendered text) and
+`read_page` (accessibility tree, for links/ids) — no page-state JavaScript is
+needed for LinkedIn any more (Step 1 covers why); never screenshots.
 
 ## Step 0 — Load the tracker, the config and the scrape state
 
@@ -80,47 +81,65 @@ are irregular.
 
 ## Step 1 — LinkedIn
 
-LinkedIn can be read without scrolling its virtualised list or opening one
-detail page at a time: two guest endpoints answer `fetch()` from any tab on
-linkedin.com. Open **one tab** on any `linkedin.com/jobs/...` page, run the
-code below in it, and collect results in `window.__RAW_LI`.
+Both guest endpoints render as ordinary pages when you navigate a tab to
+them directly — no script injection needed. Read them with the standard
+browser tools: `navigate`, then `get_page_text` (rendered text) and, on
+search-results pages, `read_page` (accessibility tree, for the actual links
+and job ids). Chain a whole sequence of these into one `browser_batch` call
+whenever you can predict the steps ahead — that's what keeps this fast
+despite there being no more `window.__RAW_LI` batching.
 
-Method notes (learned on the 2026-09-15 live run):
+Method notes (rewritten 2026-09-16, confirmed live against real search and
+detail pages; the previous inject-JS-and-dump-to-`<pre>` method is in git
+history, commit 642c8e2):
 
-- **Tool output is truncated at ~1 KB.** Never return a large object from
-  `javascript_tool`. Instead write it into the page and read it back with
-  `get_page_text` (cap ≈ 50 KB):
-  ```javascript
-  document.body.innerHTML = '<pre>@@START@@' + JSON.stringify(window.__RAW_LI) + '@@END@@</pre>';
-  ```
-  then call `get_page_text` on that tab and copy the text between the
-  markers into `scrape_raw.json`. Do this only when you are done with the
-  page — it replaces the DOM. If the payload exceeds ~45 KB, dump it in
-  slices (`JSON.stringify(x).slice(0, 45000)`, then `.slice(45000, 90000)`)
-  and concatenate.
-- **Do not `return` or echo function sources that contain URLs** — the
-  extension blanks any output that looks like a query string. Return counts
-  and ids only.
-- **Rate limits.** The guest API answers HTTP 429 after roughly 60 requests
-  in a few minutes. Space detail fetches ~2 s apart, and if a fetch returns
-  429 stop, wait 60–120 s, then resume from where you stopped. A record whose
-  detail fetch failed is still written (with `description: null`,
-  `requirements: []`) so `ingest.py` can mark it unverified and Step 1b can
-  retry it next run.
-- **Pre-filter on the title before fetching a detail** (Step 2, gates 2a–2d'):
-  build the four regexes from `config.json` once, as `window.__FAM`,
-  `__SEN`, `__TEACH`, `__EXCL`, and skip cards whose title fails them. This
-  halves the detail fetches. Never pre-filter on years.
+- **No JS injection, no ~1 KB output truncation, no query-string-content
+  block.** Those three problems were properties of `javascript_tool`'s own
+  return channel. `navigate` / `get_page_text` / `read_page` don't go
+  through it, so none of the old workarounds (base64, `<pre>` dumps,
+  slicing) apply here — read the page, you get the whole thing.
+- Get a tab once at the start of the run (`tabs_context_mcp
+  {createIfEmpty: true}`), reuse its `tabId` for every action, and
+  `tabs_close_mcp` it when you're done.
+- **Rate limits are still there** — this is the same guest API, just read a
+  different way, so assume the same ceiling seen before (HTTP 429 after
+  roughly 60 requests in a few minutes) until proven otherwise. Batch **no
+  more than ~10 navigate+get_page_text pairs per `browser_batch` call**;
+  after each batch, check whether any page came back as a sign-in wall /
+  CAPTCHA / error instead of a job page. If so, stop, wait 90 s, and resume
+  from where you left off.
+- **There is no persistent script state any more** — each `navigate` is a
+  fresh page load, so there's no `window.__LI_ALL` to collect into. Track
+  which job ids you've already seen yourself: a plain running list kept in
+  this conversation is enough for one run; cross-check new ids against
+  `existing_by_link` (Step 0) so you don't re-fetch a detail you already
+  have verified text for.
+- **Pre-filter on the title before fetching a detail** (Step 2, gates
+  2a–2d'): read each card's title against `config.json`'s `role_families`,
+  `seniority_titles`, `teaching_titles`, `excluded_titles` regexes yourself
+  and skip anything that fails. This halves the detail fetches. Never
+  pre-filter on years.
 
-### Guest search + posting APIs
+### Search results
 
-Two endpoints, both work with the normal logged-in cookie and need no
-scrolling:
+For each query × page (`start` = 0, 10, 20), in one `browser_batch` call:
+
+1. `navigate` to the search URL (template below).
+2. `read_page` with `filter: "interactive"` — the job's own link is every
+   **odd**-numbered link in DOM order (`[ref_1]`, `[ref_3]`, …; the
+   even-numbered ones link to the company page instead). Pull the numeric
+   id out of its href with `/jobs/view/[^"]*-(\d{9,})`.
+3. `get_page_text` — cards come back in the same order as the links. Each
+   card reads as: title line, **the same title repeated**, company,
+   location, an optional status line (`Actively Hiring` / `Be an early
+   applicant`), a relative date (`N days/weeks/months ago`), sometimes
+   `Apply Now` on the same line. Split on the repeated-title boundary to get
+   one block per card, and pair block *N* with job-link *N* from step 2 —
+   they're in the same order because both reflect the page's DOM order.
 
 | Purpose | URL |
 |---|---|
-| Search page (10 cards per call) | `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=<q>&location=Israel&f_TPR=r<WINDOW_SECONDS>&sortBy=DD&start=<0,10,20>` |
-| One posting's full text | `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/<ID>` |
+| Search page (10 cards/call) | `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=<q>&location=Israel&f_TPR=r<WINDOW_SECONDS>&sortBy=DD&start=<0,10,20>` |
 
 Run **each** of these keyword queries, three pages each (`start` = 0, 10,
 20 → up to 30 cards per query):
@@ -138,111 +157,47 @@ Run **each** of these keyword queries, three pages each (`start` = 0, 10,
   `state.json`, rounded up to the hour, **minimum 21600 (6 h), maximum
   604800 (7 d)**; no entry → 604800.
 - No `f_E` (experience-level) filter — the gates do that job.
-- The same job appears under several queries; `__LI_ALL` is keyed by job id
-  so it is collected once.
-- Open any `linkedin.com/jobs/...` page in the tab first so `fetch()` runs
-  same-origin with the session cookie.
+- The same job can appear under several queries — dedup by the numeric id
+  you already collected, same as before.
+- Stop paginating a query once a page returns fewer than 10 cards (end of
+  results for that window).
 
-```javascript
-// ---- LinkedIn: define once per tab -------------------------------------
-window.__LI_ALL = window.__LI_ALL || {};          // id -> card
-window.__LI_WINDOW = 604800;                      // set from state.json
+### Job details
 
-window.__liSearch = async function (q, start) {
-  const url = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search'
-    + '?keywords=' + encodeURIComponent(q) + '&location=Israel&f_TPR=r' + window.__LI_WINDOW
-    + '&sortBy=DD&start=' + (start || 0);
-  const r = await fetch(url, { credentials: 'include' });
-  if (r.status === 429) throw new Error('429');
-  const html = await r.text();
-  const out = {}; const re = /<li[\s\S]*?<\/li>/g; let m;
-  while ((m = re.exec(html))) {
-    const li = m[0];
-    const idm = li.match(/\/jobs\/view\/[^"'?]*?-?(\d{9,})/) || li.match(/data-entity-urn="urn:li:jobPosting:(\d+)"/);
-    if (!idm) continue;
-    const id = idm[1]; if (out[id]) continue;
-    const g = rx => { const x = li.match(rx); return x ? x[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : ''; };
-    out[id] = {
-      title:   g(/class="base-search-card__title[^"]*"[^>]*>([\s\S]*?)<\//),
-      company: g(/class="base-search-card__subtitle[^"]*"[^>]*>([\s\S]*?)<\/h4>/),
-      loc:     g(/class="job-search-card__location[^"]*"[^>]*>([\s\S]*?)<\//),
-      posted:  g(/datetime="([^"]+)"/),          // YYYY-MM-DD
-    };
-  }
-  return { status: r.status, n: Object.keys(out).length, out };
-};
+For each surviving, not-yet-seen job id, in `browser_batch` batches of
+~8–10 pairs:
 
-window.__liQuery = async function (q) {
-  let added = 0, seen = 0;
-  for (const start of [0, 10, 20]) {
-    const t = await window.__liSearch(q, start); seen += t.n;
-    for (const [id, c] of Object.entries(t.out)) if (!window.__LI_ALL[id]) { window.__LI_ALL[id] = c; added++; }
-    if (t.n < 10) break;
-    await new Promise(r => setTimeout(r, 1200));
-  }
-  return { q, seen, added, total: Object.keys(window.__LI_ALL).length };
-};
+1. `navigate` to `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/<ID>`.
+2. `get_page_text`.
 
-window.__liDetail = async function (id) {
-  const r = await fetch('https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/' + id, { credentials: 'include' });
-  if (r.status === 429) throw new Error('429');
-  const html = await r.text();
-  const i = html.indexOf('show-more-less-html__markup'); if (i < 0) return null;
-  const start = html.indexOf('>', i) + 1; const end = html.indexOf('</section>', start);
-  let frag = html.slice(start, end > 0 ? end : start + 20000);
-  frag = frag.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|li|div|h\d)>/gi, '\n').replace(/<li[^>]*>/gi, '• ').replace(/<[^>]+>/g, '');
-  const ta = document.createElement('textarea'); ta.innerHTML = frag; const text = ta.value;   // decodes &amp; etc.
-  const lines = text.split('\n').map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
-  const desc = [], resp = [], req = [], nice = []; let cur = 'd';
-  for (const raw of lines) {
-    const line = raw.replace(/^[•*\-–\s]+/, '').trim(); const ll = line.toLowerCase();
-    if (line.length < 60 && /(about the (?:role|job|company|team)|who we are|company description|job description|the role)/.test(ll)) { cur = 'd'; continue; }
-    if (line.length < 60 && /(responsibilit|what you will do|what you'll do|what you’ll do|you will:|your role|day to day|in this role)/.test(ll)) { cur = 'r'; continue; }
-    if (line.length < 60 && /(requirement|qualification|you will need|what you bring|must have|who you are|what we're looking for|what we are looking for|skills)/.test(ll)) { cur = 'q'; continue; }
-    if (line.length < 60 && /(nice to have|bonus|preferred|advantage|plus:)/.test(ll)) { cur = 'n'; continue; }
-    if (line.length < 8 || /^show (more|less)$/i.test(line)) continue;
-    if (cur === 'r') resp.push(line); else if (cur === 'q') req.push(line); else if (cur === 'n') nice.push(line); else desc.push(line);
-  }
-  return { description: desc.join(' ').slice(0, 600) || null, responsibilities: resp.slice(0, 4), requirements: req.slice(0, 6), nice_to_have: nice.slice(0, 3) };
-};
+| Purpose | URL |
+|---|---|
+| One posting's full text | `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/<ID>` |
 
-// Fetch details for every collected card that passes the title pre-filter.
-// Resumable: cards already in __RAW_LI or __LI_SKIP are not touched again.
-window.__RAW_LI = window.__RAW_LI || {}; window.__LI_SKIP = window.__LI_SKIP || {};
-window.__liRun = async function (max) {
-  let done = 0, pre = 0, rate = false;
-  for (const [id, c] of Object.entries(window.__LI_ALL)) {
-    if (window.__RAW_LI[id] || window.__LI_SKIP[id]) continue;
-    if (done >= max) break;
-    const t = c.title;
-    if (!window.__FAM.test(t) || window.__SEN.test(t) || window.__TEACH.test(t) || window.__EXCL.test(t)) { window.__LI_SKIP[id] = t; pre++; continue; }
-    const rec = { position: t, company: c.company, link: 'https://www.linkedin.com/jobs/view/' + id + '/', location: c.loc || null,
-                  date: c.posted || null, description: null, responsibilities: [], requirements: [], nice_to_have: [], applied_date: null };
-    try { const d = await window.__liDetail(id); if (d) Object.assign(rec, d); }
-    catch (e) { if (String(e).includes('429')) { rate = true; break; } }
-    window.__RAW_LI[id] = rec; done++;
-    await new Promise(r => setTimeout(r, 1800));
-  }
-  const remaining = Object.keys(window.__LI_ALL).filter(id => !window.__RAW_LI[id] && !window.__LI_SKIP[id]).length;
-  return { fetched: done, prefiltered: pre, stored: Object.keys(window.__RAW_LI).length, remaining, rateLimited: rate };
-};
-```
+The page reads as: title line, `Company Location` line, `<age> · <N
+applicants>` line, then the description — plain prose first, then bulleted
+sections. Split it the same way the old JS classifier did, just by reading
+it yourself: a short line matching `about the (role|job|company|team)` /
+`who we are` starts the description block; `responsibilit|what you('ll|
+will) do|your role|day to day` starts responsibilities; `requirement|
+qualification|what you bring|must have|who you are|skills` starts
+requirements; `nice to have|bonus|preferred|advantage` starts
+nice-to-have. `Seniority level` / `Employment type` / `Job function` /
+`Industries` near the bottom are LinkedIn's own coarse metadata, not
+requirements text — ignore them for gating (one live posting showed
+"Seniority level: Director" while its actual text asked for "4+ years";
+trust the title/years gates, not this field).
 
-Call sequence (one `javascript_tool` call each, so a 45-second CDP timeout
-never bites): `__liQuery(q1)` … `__liQuery(q6)` with a 3 s pause between
-queries, then `__liRun(12)` repeatedly until `remaining` is 0. If
-`rateLimited` comes back `true`, wait 90 s and call `__liRun` again — it
-resumes. Finally dump `window.__RAW_LI` through the `<pre>` channel.
-`Object.values(window.__RAW_LI)` is the LinkedIn `postings` array.
-
-The old DOM route (`#job-details`, `currentJobId`, standalone `/jobs/view/`
-scroll-and-wait) is no longer needed; it is slower and the list is
-virtualised to ~7 visible cards.
+Write `position`, `company`, `location`, `date` from the search-results card
+(Company/location there are usually cleaner than re-splitting the detail
+page's `Company Location` line); write `description` /
+`responsibilities` / `requirements` / `nice_to_have` from the detail page.
 
 ## Step 1b — Re-verify unverified postings (before scraping new ones)
 
-For each record in `to_verify` (Step 0), open its `link` and run the same
-extractor you would use for its `source` (`__liDetail(<id>)` for the numeric id in its `link`).
+For each record in `to_verify` (Step 0), take the numeric id out of its
+`link`, `navigate` to `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/<ID>`,
+and `get_page_text` — same "Job details" method as Step 1.
 Then add what you extracted to `scrape_raw.json` (Step 2) under that
 record's `source`, with the **same `link`**. `ingest.py` merges only empty
 fields, bumps `extraction_attempts`, and recomputes `extraction_ok`. If it is
@@ -313,10 +268,10 @@ posting carries `applied_date` (Gmail import), as `status: "applied"`,
 `applied_via: "manual"`, `applied_at: <date>`, with an import note. Gates
 2a–2g are skipped for those imports.
 
-**Use 2a–2d' yourself as a pre-filter** (the `__FAM` / `__SEN` / `__TEACH`
-/ `__EXCL` regexes in Step 1) so you never fetch a detail for a card whose
-*title* `ingest.py` would drop anyway. Never pre-filter on years or on
-anything you'd need the detail page for.
+**Use 2a–2d' yourself as a pre-filter** (the title pre-filter described in
+Step 1) so you never fetch a detail for a card whose *title* `ingest.py`
+would drop anyway. Never pre-filter on years or on anything you'd need the
+detail page for.
 
 ## Step 3 — After the two commands
 
@@ -338,12 +293,16 @@ build:   <the lines build_html.py printed>
 - **Login / CAPTCHA**: pause and wait for the user. Do not retry
   automatically. If it isn't resolved, stop with `finished: false` so the
   `state.json` entry stays unchanged.
-- **Runtime cap**: 10 minutes total (a full run with ~100 LinkedIn details
-  and two rate-limit pauses takes ~8). If exceeded, dump what you have,
-  write `scrape_raw.json` with `finished: false`,
-  and stop.
-- **HTTP 429 from LinkedIn**: pause 90 s, resume with `__liRun`; after a
-  second 429 in the same run, stop with `finished: false`.
+- **Runtime cap**: 10 minutes total (the previous JS-batched method did a
+  full run with ~100 LinkedIn details and two rate-limit pauses in ~8; this
+  method's wall-clock under the same load hasn't been re-measured — if it
+  runs long, that's information for next time, not a reason to blow past
+  the cap). If exceeded, dump what you have, write `scrape_raw.json` with
+  `finished: false`, and stop.
+- **HTTP 429 (or a sign-in/CAPTCHA page in place of a job page) from
+  LinkedIn**: pause 90 s, then resume the `browser_batch` sequence from the
+  first id/page you hadn't gotten to yet; after a second 429 in the same
+  run, stop with `finished: false`.
 - **Per query**: 30 LinkedIn cards (3 API pages).
 - **`requests` in the Python sandbox is proxy-blocked** — all scraping goes
   through Claude in Chrome.
