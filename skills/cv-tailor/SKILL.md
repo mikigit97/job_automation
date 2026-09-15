@@ -51,6 +51,39 @@ dashboard shows the `CV: <variant> ↗` link on that row.
 
 ## Part A — Fit a CV to a posting (the common case)
 
+### Step 0 — Coverage check (only when the posting asks for more years than `years_max`)
+
+`config.json` has two thresholds: `years_max` (3 — "3+ years are always
+ok") and `years_soft_max` (5). A posting whose `years_min` is above
+`years_max` but at most `years_soft_max` is in the Inbox as *weak* (the row
+shows `4y` / `5y`) on one condition: it gets a CV only if the experience
+actually covers what the posting asks. You are the one who checks that;
+`build_html.py` cannot.
+
+1. Take the posting's `requirements`. Drop the years line itself (the user
+   accepts that gap) and every line marked as optional (`advantage`,
+   `preferred`, `plus`, `bonus`, `nice to have`, `יתרון`). What is left is the
+   mandatory list.
+2. For each mandatory line, find **concrete evidence** in
+   `cv/experience_bank/`: a role, project, thesis or course entry that
+   demonstrates it — not a bare keyword in a skills list. Write the pairing
+   down (requirement → bank entry) in the notes file.
+3. Decide:
+   - every mandatory line has evidence → continue to Step 1 (fit as usual);
+   - exactly one line is uncovered and it is a tool or library, not a domain
+     (e.g. "experience with Spark" vs. "experience in computer vision") →
+     continue, and say so in the notes;
+   - otherwise → **do not fit**. Patch the record: `status: "archived"`,
+     `archive_reason: "fit"`, `status_source: "fit"`, `status_changed_at`,
+     and prepend to `notes`: `not fitted (<years_min>y posting): uncovered —
+     <line>; <line>`. The row moves to Done with the reason; the user can
+     Reopen it, and a reopened record is never re-archived by this check
+     (skip Step 0 when `notes` already contains `not fitted`).
+
+This is a judgment call on text, not a measurement. When in doubt between
+"tool" and "domain", treat it as a domain and archive — the user asked for
+4–5-year postings only when they fit very well.
+
 ### Step 1 — Pick the closest variant
 
 Read the job's `position`, `requirements`, `responsibilities`, `description`

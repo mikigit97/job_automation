@@ -28,3 +28,4 @@ cv/variants/*.preview.png
 
 # Scratch output of the last scrape run
 scrape_raw.json
+gmail_raw.json

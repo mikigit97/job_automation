@@ -85,17 +85,20 @@ class RelevanceGate(unittest.TestCase):
         self.assertTrue(self.keep(position="Data Scientist", company="Aidoc Medical", description="medical imaging AI " * 20)[0])
         self.assertTrue(self.keep(position="Machine Learning Engineer - Healthcare", company="Zebra Medical")[0])
 
-    def test_years_gate_uses_threshold(self):
+    def test_years_gate_uses_soft_threshold(self):
+        # <= years_max (3): always kept. years_max < n <= years_soft_max (5): kept, the Fit CVs step decides.
         self.assertTrue(self.keep(requirements=["3+ years of experience with Python", "SQL"])[0])
-        keep, why = self.keep(requirements=["4+ years of experience with Python", "SQL"])
+        self.assertTrue(self.keep(requirements=["4+ years of experience with Python", "SQL"])[0])
+        self.assertTrue(self.keep(requirements=["5 years of experience in ML", "SQL"])[0])
+        keep, why = self.keep(requirements=["6+ years of experience with Python", "SQL"])
         self.assertFalse(keep)
-        self.assertIn("4+", why)
+        self.assertIn("6+", why)
 
     def test_years_gate_applies_even_when_unverified(self):
-        # One structured line (Drushim style) is enough evidence to gate on.
-        keep, why = self.keep(requirements=["ניסיון: 5 שנים"])
+        # One structured line is enough evidence to gate on.
+        keep, why = self.keep(requirements=["ניסיון: 7 שנים"])
         self.assertFalse(keep)
-        self.assertIn("5+", why)
+        self.assertIn("7+", why)
         # ...but with no years figure at all, an unverified record is kept.
         self.assertTrue(self.keep(requirements=["Python"])[0])
 
@@ -286,10 +289,13 @@ class FitTier(unittest.TestCase):
         self.assertIn("unverified", self.fit(requirements=[])["reasons"])
         self.assertEqual(self.fit(requirements=[])["tier"], "weak")
         self.assertEqual(self.fit(company="Experis")["tier"], "weak")
-        self.assertEqual(self.fit(requirements=["3+ years of experience", "SQL"])["tier"], "weak")
+        self.assertEqual(self.fit(requirements=["4+ years of experience", "SQL"])["tier"], "weak")
+        self.assertIn("4y", self.fit(requirements=["4+ years of experience", "SQL"])["reasons"])
 
     def test_ok(self):
         self.assertEqual(self.fit(position="Data Scientist", requirements=["Python", "SQL"])["tier"], "ok")
+        # "3+ years are always ok" -> ok, not weak
+        self.assertEqual(self.fit(requirements=["3+ years of experience", "SQL"])["tier"], "ok")
 
 
 class Purge(unittest.TestCase):
@@ -318,7 +324,7 @@ class Ingest(unittest.TestCase):
             {"position": "Data Scientist", "company": "Acme Ltd", "link": "https://x/1", "requirements": ["Python", "SQL"]},
             {"position": "Senior Data Scientist", "company": "Beta", "link": "https://x/2", "requirements": ["Python", "SQL"]},
             {"position": "Data Scientist (m/f)", "company": "ACME", "link": "https://x/3", "requirements": ["Python", "SQL"]},
-            {"position": "AI Engineer", "company": "Gamma", "link": "https://x/4", "requirements": "5+ years of experience\nPython"},
+            {"position": "AI Engineer", "company": "Gamma", "link": "https://x/4", "requirements": "7+ years of experience\nPython"},
         ]}, {"source": "AllJobs", "finished": False, "postings": []}]
         c, jobs, state = self.run_ingest(batches, [])
         self.assertEqual(c["new"], {"LinkedIn": 1})
@@ -343,6 +349,43 @@ class Ingest(unittest.TestCase):
         b = jobs[1]
         self.assertEqual((b["status"], b["applied_at"]), ("applied", "2026-09-11"))
         self.assertEqual(c["imported"], 1)
+        self.assertEqual(c["promoted"], 1)
+
+    def test_gmail_import(self):
+        existing = [
+            {"id": "acme-1", "position": "Data Scientist", "company": "Acme", "source": "LinkedIn", "link": "https://l/1",
+             "scraped_at": "2026-09-10T00:00:00Z", "requirements": ["Python", "SQL"], "status": "new",
+             "status_source": "scraper", "status_changed_at": "2026-09-10T00:00:00Z"},
+            {"id": "beta-1", "position": "AI Engineer", "company": "Beta", "source": "LinkedIn", "link": "https://l/2",
+             "scraped_at": "2026-09-10T00:00:00Z", "requirements": ["Python"], "status": "interview",
+             "status_source": "user", "status_changed_at": "2026-09-12T00:00:00Z", "applied_at": "2026-09-11"},
+        ]
+        batches = [{"source": "Gmail", "finished": True, "postings": [
+            # matches acme-1 by company|position, no link in the email -> promoted
+            {"position": "Data Scientist (m/f)", "company": "ACME Ltd", "link": None, "applied_date": "2026-09-14",
+             "note": "imported from email: Your application was sent to Acme"},
+            # already past applied -> untouched
+            {"position": "AI Engineer", "company": "Beta", "link": None, "applied_date": "2026-09-14"},
+            # unknown posting, no link -> new applied record, gates skipped (title would fail the family gate)
+            {"position": "Software Engineer", "company": "Gamma Corp", "link": None, "applied_date": "2026-09-13",
+             "note": "imported from email: Thank you for applying to Gamma"},
+            # no link and not applied -> ignored
+            {"position": "Data Scientist", "company": "Delta", "link": None},
+        ]}]
+        c, jobs, state = self.run_ingest(batches, existing)
+        a = jobs[0]
+        self.assertEqual((a["status"], a["status_source"], a["applied_at"], a["applied_via"]), ("applied", "gmail", "2026-09-14", "manual"))
+        self.assertIn("imported from email", a["notes"])
+        self.assertEqual(jobs[1]["status"], "interview")
+        self.assertEqual(len(jobs), 3)
+        g = jobs[2]
+        self.assertEqual((g["status"], g["source"], g["link"], g["applied_at"], g["extraction_ok"]), ("applied", "Gmail", None, "2026-09-13", False))
+        self.assertTrue(g["id"].startswith("gamma-"))
+        self.assertEqual((c["promoted"], c["imported"], sum(c["new"].values())), (1, 1, 0))
+        self.assertIn("Gmail", state["sources"])
+        # idempotent: the same emails again change nothing
+        c2, jobs2, _ = self.run_ingest(batches, jobs)
+        self.assertEqual((c2["promoted"], c2["imported"], len(jobs2)), (0, 0, 3))
 
 
 if __name__ == "__main__":

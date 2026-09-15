@@ -375,7 +375,8 @@ function sideHtml(j) {
       : `since ${rel(j.status_changed_at)}`;
     return `<span>${em}</span><div class="btns"><button data-act="offer" class="primary">Offer</button><button data-act="rejected" class="danger">Rejected</button></div>`;
   }
-  const reason = j.status === 'archived' ? ` · ${esc(j.archive_reason || 'skipped')}` : '';
+  const REASON = { skipped: 'skipped', expired: 'expired', irrelevant: 'irrelevant', duplicate: 'duplicate', fit: 'not fitted (requirements not covered)' };
+  const reason = j.status === 'archived' ? ` · ${esc(REASON[j.archive_reason] || j.archive_reason || 'skipped')}` : '';
   return `<span class="badge outcome-${j.status}">${j.status}${reason}</span><span>${shortDate(j.status_changed_at)}</span>` +
     `<div class="btns"><button data-act="reopen">Reopen</button></div>`;
 }

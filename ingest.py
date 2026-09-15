@@ -15,18 +15,24 @@ Input file (default scrape_raw.json), either a list of batches or
          {"position": "...", "company": "...", "link": "https://...",
           "location": null, "date": "2026-09-14", "description": "...",
           "responsibilities": ["..."], "requirements": ["..."], "nice_to_have": [],
-          "applied_date": null}          # Drushim only: "YYYY-MM-DD" when the card says a CV was sent
+          "applied_date": null,          # "YYYY-MM-DD" when the user already applied (Gmail import, board badge)
+          "note": null}                  # optional free text appended to the record's notes
        ]}
     ]}
 
 What it does per posting:
   * link already in jobs.json  -> enrich empty scraper fields, re-verify,
-                                  never touch status (except the Drushim import)
-  * gates (role family, seniority, teaching, clinical, anonymous AllJobs,
-    years when verified)       -> dropped, counted by reason
-  * dedup_key already known    -> dropped as duplicate
-  * otherwise                  -> appended as status=new (or applied, for a
-                                  Drushim "CV already sent" card)
+                                  never touch status (except applied_date on a
+                                  `new` record, which promotes it to applied)
+  * gates (role family, seniority, teaching, clinical, excluded role,
+    anonymous AllJobs, parsed years above years_soft_max) -> dropped, counted
+  * dedup_key already known    -> dropped as duplicate — unless the posting
+                                  carries applied_date and the known record is
+                                  still `new`: then that record is promoted
+  * otherwise                  -> appended as status=new, or as applied when
+                                  applied_date is set (link may be null then —
+                                  an application confirmed by email whose
+                                  posting was never scraped)
 
 Then writes jobs.json (backup first), updates state.json for finished
 batches, and prints one summary line. Run `python build_html.py` afterwards.
@@ -62,10 +68,10 @@ def _as_list(v, cap: int) -> list[str]:
     return out[:cap]
 
 
-def make_id(company: str, link: str, taken: set[str]) -> str:
+def make_id(company: str, link: str, taken: set[str], fallback: str = "") -> str:
     first = (str(company or "").strip().split() or ["job"])[0].lower()
     first = re.sub(r"[^\w\-]", "", first, flags=re.UNICODE) or "job"
-    h = hashlib.md5(str(link).encode("utf-8")).hexdigest()[:6]
+    h = hashlib.md5(str(link or fallback).encode("utf-8")).hexdigest()[:6]
     base = f"{first}-{h}"
     jid, n = base, 2
     while jid in taken:
@@ -73,14 +79,24 @@ def make_id(company: str, link: str, taken: set[str]) -> str:
     return jid
 
 
+def _promote(existing: dict, applied: str, source: str, note: str | None) -> None:
+    """A `new` record the user has in fact applied to (board badge or email confirmation)."""
+    existing.update({
+        "status": "applied", "status_source": "gmail" if source == "Gmail" else "scraper",
+        "applied_via": "manual", "applied_at": applied, "status_changed_at": applied,
+        "notes": ((existing.get("notes") or "").strip() + "\n" + (note or f"imported: applied via {source} on {applied}")).strip(),
+    })
+
+
 def new_record(p: dict, source: str, scraped_at: str, taken: set[str]) -> dict:
     applied = p.get("applied_date")
+    note = (p.get("note") or "").strip()
     rec = {
-        "id": make_id(p.get("company"), p.get("link"), taken),
+        "id": make_id(p.get("company"), p.get("link"), taken, fallback=bh.dedup_key(p.get("company"), p.get("position"))),
         "position": (p.get("position") or "").strip(),
         "company": (p.get("company") or "").strip(),
         "source": source,
-        "link": p.get("link"),
+        "link": p.get("link") or None,
         "scraped_at": scraped_at,
         "location": (p.get("location") or None),
         "date": (p.get("date") or None),
@@ -99,7 +115,7 @@ def new_record(p: dict, source: str, scraped_at: str, taken: set[str]) -> dict:
         "last_email": None,
         "cv_variant": None,
         "cv_tailored_at": None,
-        "notes": f"imported: CV sent via {source} on {applied}" if applied else "",
+        "notes": note or (f"imported: applied via {source} on {applied}" if applied else ""),
         "recruiter_phone": "",
     }
     return rec
@@ -126,12 +142,8 @@ def enrich(existing: dict, p: dict, source: str, cfg: bh.Config) -> tuple[bool, 
         existing["extraction_attempts"] = int(existing.get("extraction_attempts") or 0) + 1
     bh.ensure_fields(existing, cfg)
     applied = p.get("applied_date")
-    if applied and source == "Drushim" and existing.get("status") == "new":
-        existing.update({
-            "status": "applied", "status_source": "scraper", "applied_via": "manual",
-            "applied_at": applied, "status_changed_at": applied,
-            "notes": ((existing.get("notes") or "").strip() + f"\nimported: CV sent via Drushim on {applied}").strip(),
-        })
+    if applied and existing.get("status") == "new":
+        _promote(existing, applied, source, (p.get("note") or "").strip() or None)
         changed = True
     return changed, (not was_ok and bool(existing.get("extraction_ok")))
 
@@ -148,22 +160,37 @@ def run(raw_path: Path, jobs_path: Path, state_path: Path, cfg: bh.Config, dry_r
             bh.migrate_record(j, bh.now_utc())
         bh.ensure_fields(j, cfg)
     by_link = {j.get("link"): j for j in jobs if j.get("link")}
-    keys = {j.get("dedup_key") for j in jobs}
+    by_key = {j.get("dedup_key"): j for j in jobs if j.get("dedup_key")}
+    keys = set(by_key)
     ids = {j.get("id") for j in jobs}
 
-    c = {"new": {}, "imported": 0, "enriched": 0, "reverified": 0, "duplicate": 0,
+    c = {"new": {}, "imported": 0, "promoted": 0, "enriched": 0, "reverified": 0, "duplicate": 0,
          "filtered": {}, "agency": 0, "unverified": 0}
 
     for batch in batches:
         source = batch.get("source") or "Unknown"
         for p in batch.get("postings", []):
-            if not p.get("link") or not (p.get("position") or p.get("company")):
+            if not (p.get("position") or p.get("company")):
                 continue
-            existing = by_link.get(p["link"])
+            if not p.get("link") and not p.get("applied_date"):
+                continue                      # a posting without a link is only acceptable as an applied import
+            existing = by_link.get(p["link"]) if p.get("link") else None
+            if existing is None and p.get("applied_date"):
+                existing = by_key.get(bh.dedup_key(p.get("company"), p.get("position")))
+                if existing is not None and existing.get("status") == "new":
+                    _promote(existing, p["applied_date"], source, (p.get("note") or "").strip() or None)
+                    if p.get("link") and not existing.get("link"):
+                        existing["link"] = p["link"]; by_link[p["link"]] = existing
+                    c["promoted"] += 1
+                    continue
+                if existing is not None:
+                    continue                  # already applied/interview/...: the email adds nothing
             if existing is not None:
+                was_new = existing.get("status") == "new"
                 changed, verified = enrich(existing, p, source, cfg)
                 c["enriched"] += int(changed)
                 c["reverified"] += int(verified)
+                c["promoted"] += int(was_new and existing.get("status") == "applied")
                 continue
             rec = new_record(p, source, scraped_at, ids)
             bh.ensure_fields(rec, cfg)
@@ -182,7 +209,9 @@ def run(raw_path: Path, jobs_path: Path, state_path: Path, cfg: bh.Config, dry_r
                 c["duplicate"] += 1
                 continue
             jobs.append(rec)
-            by_link[rec["link"]] = rec
+            if rec.get("link"):
+                by_link[rec["link"]] = rec
+            by_key[rec["dedup_key"]] = rec
             keys.add(rec["dedup_key"])
             ids.add(rec["id"])
             if rec["status"] == "applied":
@@ -221,7 +250,7 @@ def main(argv: list[str] | None = None) -> int:
     per = " ".join(f"{k}:{v}" for k, v in sorted(c["new"].items()))
     filt = " / ".join(f"{v} {k}" for k, v in sorted(c["filtered"].items())) or "none"
     print(f"Ingested {new_total} new ({per or '-'}) · {c['enriched']} enriched ({c['reverified']} now verified) · "
-          f"{c['imported']} imported as applied · {c['duplicate']} duplicates · filtered: {filt} · "
+          f"{c['imported']} imported as applied · {c['promoted']} promoted new→applied · {c['duplicate']} duplicates · filtered: {filt} · "
           f"flagged: {c['agency']} agency, {c['unverified']} unverified"
           + (" · DRY RUN" if args.dry_run else ""))
     return 0

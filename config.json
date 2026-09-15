@@ -1,9 +1,10 @@
 {
   "schema_version": 2,
 
-  "_comment": "Thresholds and pattern lists for build_html.py and the scraper prompts. Regex fragments are joined with | and compiled case-insensitively. Edit here, not in code.",
+  "_comment": "Thresholds and pattern lists for build_html.py and the scraper prompts. Regex fragments are joined with | and compiled case-insensitively. Edit here, not in code. years_max: stated minimum years up to this are always fine; years_soft_max: postings asking more than years_max but at most this stay in the Inbox as weak and get a CV only if the Fit CVs step finds the mandatory requirements covered; above it they are dropped.",
 
   "years_max": 3,
+  "years_soft_max": 5,
   "expiry_days": 21,
   "followup_days": 7,
   "backups_to_keep": 20,

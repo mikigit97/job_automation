@@ -29,17 +29,19 @@ Claude Settings → Skills → point at `skills/cv-tailor/SKILL.md` (or install 
 
 ### 6. Cowork tasks
 - Scheduled: `prompts/gmail_sync.md`, Sun–Thu 16:05.
-- Saved (on demand): `prompts/tailor_cvs.md` as "Fit CVs"; `prompts/auto_apply.md` as "Auto-apply" (AllJobs/Drushim only, never scheduled).
+- Saved (on demand): `prompts/tailor_cvs.md` as "Fit CVs".
 
 ## Daily workflow
 
 Everything lives in one file, `jobs.json`. The dashboard `Job_applications.html` is generated from it by `build_html.py` and writes your edits back into it.
 
-**08:00 & 16:00 — `/scrape-jobs`** (needs Chrome open with the extension). Scrapes LinkedIn (six queries through the guest search/posting APIs, window since the last run) / AllJobs (guest results page; most employers hidden unless logged in) / Drushim (six queries through its JSON search API), re-visits postings whose requirements weren't captured, dumps everything to `scrape_raw.json`, then runs `python ingest.py` (gates, dedup, write) and `python build_html.py`.
+**08:00 & 16:00 — `/scrape-jobs`** (needs Chrome open with the extension). Scrapes LinkedIn (six queries through the guest search/posting APIs, window since the last run; AllJobs and Drushim were dropped 2026-09-15), re-visits postings whose requirements weren't captured, dumps everything to `scrape_raw.json`, then runs `python ingest.py` (gates, dedup, write) and `python build_html.py`.
 
 **Sunday 16:00 — `/scrape-bigtech`.** Same, for NVIDIA / Google / Apple / Amazon Israel pages. Weekly, because junior openings there are rare.
 
-**16:05 — Gmail sync.** For every applied/interview posting, finds the latest matching thread, classifies it, and moves the status forward (never backward). Rebuilds the dashboard.
+**16:05 — Gmail sync.** First imports applications you sent on your own: an application-confirmation email (LinkedIn "Your application was sent to…", Greenhouse/Lever/Comeet/Workday receipts, Hebrew תודה על פנייתך) whose job is not yet `applied` becomes an `applied` record — or promotes the matching Inbox row — with `source: Gmail` and the email date as `applied_at`. Company and position are parsed from the email (pattern matching; fix them with Edit when it guesses wrong). Then, for every applied/interview posting, it finds the latest matching thread, classifies it, and moves the status forward (never backward). Rebuilds the dashboard.
+
+**Applying on your own.** You can apply anywhere without touching the dashboard: the next Gmail sync picks up the confirmation. If you want the row before that, use `+ Add` and click `[Applied]`.
 
 **Whenever you sit down — the dashboard.** Open `Job_applications.html` in Chrome. Click **Link folder…** once and pick this project folder; from then on every click is saved into `jobs.json` (field-scoped: only your fields on the record you touched are written).
 
@@ -54,11 +56,11 @@ Everything lives in one file, `jobs.json`. The dashboard `Job_applications.html`
 
 **Before applying — "Fit CVs".** Say it in Cowork or click the saved task. For every `new`/`applied` posting without a CV it picks the closest variant, rewords only the subtitle and summary, renders `cv/tailored/<id>.pdf`, and links it on the row (`CV: <variant> ↗`). Cheap per posting, so it runs on the whole backlog.
 
-**Applying.** Open the posting (↗), attach `cv/tailored/<id>.pdf`, submit, click `[Applied]`. Or run "Auto-apply" for AllJobs/Drushim postings (it fits a CV first if needed and records `applied_via: auto`).
+**Applying.** Open the posting (↗), attach `cv/tailored/<id>.pdf`, submit, click `[Applied]`.
 
 ## The status pipeline
 
-One field, `status`: `new → applied → interview → offer | rejected`, plus `archived` for postings you skipped or that expired. `status_source` says who last set it (`user`, `gmail`, `auto_apply`, `scraper`, `maintain`); `status_changed_at` says when.
+One field, `status`: `new → applied → interview → offer | rejected`, plus `archived` for postings you skipped or that expired. `status_source` says who last set it (`user`, `gmail`, `scraper`, `maintain`, `fit`); `status_changed_at` says when.
 
 Rules every writer follows:
 - Moving to `applied` sets `applied_at` (once) and `applied_via` (`manual` / `auto`).
@@ -68,7 +70,8 @@ Rules every writer follows:
 
 `build_html.py` maintenance on every run (status `new` only, never `manual-` ids):
 - older than `expiry_days` (21) → `archived / expired`
-- fails a relevance gate (title outside AI/DS families, senior, teaching, clinical or excluded-role title, anonymous AllJobs company, a parsed years figure above `years_max` (3)) → `archived / irrelevant`, reason in notes
+- fails a relevance gate (title outside AI/DS families, senior, teaching, clinical or excluded-role title, a parsed years figure above `years_soft_max` (5)) → `archived / irrelevant`, reason in notes
+- asks for 4–5 years (`years_max` 3 < n ≤ `years_soft_max` 5) → stays in the Inbox as *weak* (`4y`/`5y` badge); the Fit CVs step fits a CV only if the experience bank covers the mandatory requirements, otherwise → `archived / fit` with the uncovered lines in notes (Reopen if you disagree)
 - same normalized company|position as another live posting → `archived / duplicate`
 
 Fitted CVs (`cv/tailored/<id>.*`) are deleted when a posting becomes archived or rejected. `cv/variants/` is never touched.
@@ -102,7 +105,7 @@ Fitted CVs (`cv/tailored/<id>.*`) are deleted when a posting becomes archived or
 |---|---|
 | `id`, `position`, `company`, `source`, `link`, `scraped_at`, `location`, `date`, `description`, `responsibilities`, `requirements`, `nice_to_have`, `extraction_ok`, `extraction_attempts` | Scraper (you can override any of these from Edit) |
 | `last_email`; `status` → forward moves only | Gmail sync |
-| `status`, `status_source`, `status_changed_at`, `applied_at`, `applied_via`, `followed_up_at`, `archive_reason`, `notes`, `recruiter_phone`, `agency` | You, via the dashboard (also auto-apply for its own applications) |
+| `status`, `status_source`, `status_changed_at`, `applied_at`, `applied_via`, `followed_up_at`, `archive_reason`, `notes`, `recruiter_phone`, `agency` | You, via the dashboard; `ingest.py` for Gmail imports; Fit CVs for `archived / fit` |
 | `cv_variant`, `cv_tailored_at` | Fit CVs |
 | `years_min`, `dedup_key`, `fit`, `agency` (initial value only) | `build_html.py` |
 
@@ -110,7 +113,7 @@ Every writer does a field-scoped read-modify-write: it patches only its own fiel
 
 ## Configuration — `config.json`
 
-All thresholds and pattern lists live there: `years_max`, `expiry_days`, `followup_days`, `drop_anonymous_alljobs`, the role-family / junior / seniority / teaching / clinical / excluded-role title patterns, the agency list. Edit the JSON, re-run `python build_html.py`. Test the gates with `python tests/test_gates.py`.
+All thresholds and pattern lists live there: `years_max`, `years_soft_max`, `expiry_days`, `followup_days`, `drop_anonymous_alljobs`, the role-family / junior / seniority / teaching / clinical / excluded-role title patterns, the agency list. Edit the JSON, re-run `python build_html.py`. Test the gates with `python tests/test_gates.py`.
 
 ## The CV variants — how fitting works
 
@@ -129,8 +132,8 @@ Three durable base CVs in `cv/variants/`:
 |---|---|
 | `jobs.json` | The store. Schema v2 above. |
 | `build_html.py` | Migrate → derive → maintain → fit → render. `--dry-run` reports without writing. |
-| `ingest.py` | Turns `scrape_raw.json` (what the browser extracted) into records: gates, dedup, Drushim applied import, `state.json`. Same functions as `build_html.py`. |
-| `scrape_raw.json` | Scratch output of the last scrape run (gitignored). |
+| `ingest.py` | Turns `scrape_raw.json` / `gmail_raw.json` (what the browser or the Gmail task extracted) into records: gates, dedup, applied imports, `state.json`. Same functions as `build_html.py`. |
+| `scrape_raw.json`, `gmail_raw.json` | Scratch output of the last scrape / Gmail run (gitignored). |
 | `config.json` | Thresholds and pattern lists. |
 | `templates/dashboard.html` | Dashboard template (data is embedded at build time). |
 | `Job_applications.html` | Generated dashboard. Open in Chrome. |
@@ -139,7 +142,7 @@ Three durable base CVs in `cv/variants/`:
 | `tests/test_gates.py` | Unit tests for gates, parsers, migration (`python tests/test_gates.py`). |
 | `prompts/scrape.md`, `scrape-bigtech.md` | Chrome shortcut text. |
 | `prompts/gmail_sync.md` | Cowork scheduled task. |
-| `prompts/tailor_cvs.md`, `prompts/auto_apply.md` | Cowork on-demand tasks. |
+| `prompts/tailor_cvs.md` | Cowork on-demand task. |
 | `skills/cv-tailor/SKILL.md` | Fitting rules (Part A), variant maintenance (Part B). |
 | `cv/base_cv.html`, `cv/render_pdf.py` | Template and the one-page PDF renderer. |
 | `cv/experience_bank/**/*.md` | Content pool. |

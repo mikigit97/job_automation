@@ -14,6 +14,12 @@ when all of these hold:
   `interview` - those either don't need a CV or already sent one), and
 - `cv_variant` is null AND `cv/tailored/<id>.pdf` does not exist.
 
+Order the list: `applied` first (a CV is overdue), then Inbox rows by fit
+tier `strong`, `ok`, `weak`. Rows with `years_min` above `years_max` (they
+show `4y` / `5y` on the dashboard) go through the skill's **Step 0 coverage
+check** first; the ones it rejects are archived with `archive_reason: "fit"`
+and listed in the summary instead of getting a CV.
+
 `jobs.json` is the only store. Everything the fit step needs is on the job
 record itself: `position`, `company`, `requirements`, `responsibilities`,
 `nice_to_have`, `description`, `extraction_ok`.
@@ -48,7 +54,9 @@ marks the row as unverified; the user can paste requirements via Edit and
 re-run.
 
 Do not change `status`, `applied_at`, or any other field beyond `cv_variant`
-and `cv_tailored_at`.
+and `cv_tailored_at` — with one exception: the Step 0 coverage check may
+archive a 4–5-year posting (`status`, `archive_reason: "fit"`,
+`status_source: "fit"`, `status_changed_at`, a `notes` line). Nothing else.
 
 **Step 3 - Rebuild the dashboard.**
 
@@ -64,6 +72,7 @@ Fitted N CVs:
 ...
 Skipped M (already have a CV).
 Could not fit K (no matching variant): <id> (<company> - <position>), ...
+Archived J (4-5y posting, requirements not covered): <id> (<company> - <position>): uncovered <line>; ...
 ```
 
 **If `cv/variants/` is missing or empty**, stop and tell me - the variants

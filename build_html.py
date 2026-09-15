@@ -67,6 +67,7 @@ class Config:
     def __init__(self, raw: dict):
         self.raw = raw
         self.years_max: int = int(raw.get("years_max", 3))
+        self.years_soft_max: int = max(self.years_max, int(raw.get("years_soft_max", self.years_max)))
         self.expiry_days: int = int(raw.get("expiry_days", 21))
         self.followup_days: int = int(raw.get("followup_days", 7))
         self.backups_to_keep: int = int(raw.get("backups_to_keep", 20))
@@ -87,6 +88,7 @@ class Config:
         """The subset the dashboard needs at runtime."""
         return {
             "years_max": self.years_max,
+            "years_soft_max": self.years_soft_max,
             "expiry_days": self.expiry_days,
             "followup_days": self.followup_days,
             "variants": self.variants,
@@ -251,9 +253,10 @@ def is_relevant(job: dict, cfg: Config) -> tuple[bool, str]:
             and is_anonymous(job.get("company"), cfg)):
         return False, "anonymous AllJobs company"
     ym = job.get("years_min")
-    if ym is not None and ym > cfg.years_max:
-        # Gate on any parsed figure: a years line is evidence even when the rest
-        # of the extraction is thin (e.g. Drushim's structured "ניסיון" field).
+    if ym is not None and ym > cfg.years_soft_max:
+        # Gate on any parsed figure, verified or not. Between years_max and
+        # years_soft_max the posting stays (tier weak) and the Fit CVs step
+        # decides whether the experience actually covers it.
         return False, f"requires {ym}+ years"
     return True, ""
 
@@ -277,12 +280,12 @@ def compute_fit(job: dict, cfg: Config) -> dict:
         reasons.append("agency")
     if not ok:
         reasons.append("unverified")
-    if not ok or agency or (ym is not None and ym >= cfg.years_max):
-        tier = "weak"
+    if not ok or agency or (ym is not None and ym > cfg.years_max):
+        tier = "weak"          # unverified, agency, or asks more years than the always-ok threshold
     elif fam and (junior or (ym is not None and ym <= 2)):
         tier = "strong"
     else:
-        tier = "ok"
+        tier = "ok"            # includes ym == years_max ("3+ years are always ok")
     return {"tier": tier, "reasons": reasons}
 
 

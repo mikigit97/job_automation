@@ -106,7 +106,7 @@
     "dedup_key": "gini apps|ai engineer",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -146,7 +146,7 @@
     "dedup_key": "g stat|validation data scientist hybrid tel aviv",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -226,7 +226,7 @@
     "dedup_key": "bdo זיו האפט|bdo מגייסים data engineer data scientist",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -266,7 +266,7 @@
     "dedup_key": "proceed|מוביל הטמעת ai sdlc",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -306,7 +306,7 @@
     "dedup_key": "prologic משרדי ממשלה|data scientist",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -346,7 +346,7 @@
     "dedup_key": "qualityai|23487 data scientist",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -386,7 +386,7 @@
     "dedup_key": "mia analytics|מנתח ת ומיישם ת מערכות data ו nlp",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -426,7 +426,7 @@
     "dedup_key": "matrix פינטק|מפתח ai",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -506,7 +506,7 @@
     "dedup_key": "קבוצת יעל|מפתח data science פתרונות ai ו ml",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -546,7 +546,7 @@
     "dedup_key": "אקווה שילד|computer vision engineer",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -627,7 +627,7 @@
     "dedup_key": "matrix dna|data scientist",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -667,7 +667,7 @@
     "dedup_key": "יונילינק|מדען נתונים ואחראי ai וחדשנות",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -747,7 +747,7 @@
     "dedup_key": "בנק דיסקונט|data scientist למחלקת ניהול מוצרי כרטיסי אשראי",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -787,7 +787,7 @@
     "dedup_key": "הראל ביטוח ופיננסים|הראל מגייסת ai engineer",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -920,7 +920,7 @@
     "dedup_key": "אידאומובייל|data scientist",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -970,7 +970,7 @@
     "dedup_key": "קבוצת יעל|מדע הנתונים data scientist אחראי ai וחדשנות",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -1116,7 +1116,7 @@
     "dedup_key": "bringg|data scientist maternity leave cover long term",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -1260,7 +1260,7 @@
     "dedup_key": "checkout com|fraud data scientist",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -1653,7 +1653,7 @@
     "dedup_key": "axon pulse|machine learning engineer",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -1796,7 +1796,7 @@
     "dedup_key": "msd|algorithm engineer",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -1943,7 +1943,7 @@
     "dedup_key": "sig sauer|ai computer vision engineer ii",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -2039,7 +2039,7 @@
     "dedup_key": "imagen|algorithm engineer",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -2363,7 +2363,7 @@
     "dedup_key": "jfrog|genai competitive intelligence engineer",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -2518,7 +2518,7 @@
     "dedup_key": "noma security|ai engineer",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -2868,7 +2868,7 @@
     "dedup_key": "elbit systems israel|real time computer vision developer",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -2918,7 +2918,7 @@
     "dedup_key": "amazon web services aws|machine learning performance engineer annapurna labs",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
@@ -3102,7 +3102,7 @@
     "dedup_key": "elbit systems israel|ai deep learning researcher",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ai",
         "3y"
@@ -3151,7 +3151,7 @@
     "dedup_key": "elbit systems israel|algorithm development researcher",
     "agency": false,
     "fit": {
-      "tier": "weak",
+      "tier": "ok",
       "reasons": [
         "ds",
         "3y"
