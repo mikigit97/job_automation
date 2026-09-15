@@ -163,7 +163,7 @@
 
 <header>
   <div class="top">
-    <h1>Job Applications <span class="build">built 2026-09-15 11:46</span></h1>
+    <h1>Job Applications <span class="build">built 2026-09-15 11:53</span></h1>
     <div class="chips" id="chips"></div>
     <div class="actions">
       <button id="add-btn" class="primary">+ Add</button>
@@ -383,8 +383,11 @@ function sideHtml(j) {
 function rowHtml(j) {
   const tier = (j.fit && j.fit.tier) || 'ok';
   const reasons = (j.fit && j.fit.reasons || []).join(', ');
+  const rs = (j.fit && j.fit.reasons) || [];
   const badges = [
     j.source ? `<span class="badge">${esc(j.source)}</span>` : '',
+    rs.includes('junior') ? `<span class="badge" title="Junior signal in the title">junior</span>` : '',
+    (j.years_min !== null && j.years_min !== undefined) ? `<span class="badge" title="Minimum years of experience stated in the posting">${esc(j.years_min)}y</span>` : '',
     j.agency ? `<span class="badge agency" title="Staffing agency, not the employer">agency</span>` : '',
     isUnverified(j) ? `<span class="badge unverified" title="Requirements could not be read from the posting">unverified</span>` : '',
   ].join('');
