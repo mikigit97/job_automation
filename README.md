@@ -35,7 +35,7 @@ Claude Settings → Skills → point at `skills/cv-tailor/SKILL.md` (or install 
 
 Everything lives in one file, `jobs.json`. The dashboard `Job_applications.html` is generated from it by `build_html.py` and writes your edits back into it.
 
-**08:00 & 16:00 — `/scrape-jobs`** (needs Chrome open with the extension). Scrapes LinkedIn (six queries, window since the last run) / AllJobs / Drushim, re-visits postings whose requirements weren't captured, dumps everything to `scrape_raw.json`, then runs `python ingest.py` (gates, dedup, write) and `python build_html.py`.
+**08:00 & 16:00 — `/scrape-jobs`** (needs Chrome open with the extension). Scrapes LinkedIn (six queries through the guest search/posting APIs, window since the last run) / AllJobs (guest results page; most employers hidden unless logged in) / Drushim (six queries through its JSON search API), re-visits postings whose requirements weren't captured, dumps everything to `scrape_raw.json`, then runs `python ingest.py` (gates, dedup, write) and `python build_html.py`.
 
 **Sunday 16:00 — `/scrape-bigtech`.** Same, for NVIDIA / Google / Apple / Amazon Israel pages. Weekly, because junior openings there are rare.
 
@@ -68,7 +68,7 @@ Rules every writer follows:
 
 `build_html.py` maintenance on every run (status `new` only, never `manual-` ids):
 - older than `expiry_days` (21) → `archived / expired`
-- fails a relevance gate (title outside AI/DS families, senior, teaching, clinical title, anonymous AllJobs company, needs more than `years_max` (3) years and the requirements were captured) → `archived / irrelevant`, reason in notes
+- fails a relevance gate (title outside AI/DS families, senior, teaching, clinical or excluded-role title, anonymous AllJobs company, a parsed years figure above `years_max` (3)) → `archived / irrelevant`, reason in notes
 - same normalized company|position as another live posting → `archived / duplicate`
 
 Fitted CVs (`cv/tailored/<id>.*`) are deleted when a posting becomes archived or rejected. `cv/variants/` is never touched.
@@ -110,7 +110,7 @@ Every writer does a field-scoped read-modify-write: it patches only its own fiel
 
 ## Configuration — `config.json`
 
-All thresholds and pattern lists live there: `years_max`, `expiry_days`, `followup_days`, `drop_anonymous_alljobs`, the role-family / junior / seniority / teaching / clinical title patterns, the agency list. Edit the JSON, re-run `python build_html.py`. Test the gates with `python tests/test_gates.py`.
+All thresholds and pattern lists live there: `years_max`, `expiry_days`, `followup_days`, `drop_anonymous_alljobs`, the role-family / junior / seniority / teaching / clinical / excluded-role title patterns, the agency list. Edit the JSON, re-run `python build_html.py`. Test the gates with `python tests/test_gates.py`.
 
 ## The CV variants — how fitting works
 
@@ -150,7 +150,7 @@ Three durable base CVs in `cv/variants/`:
 
 **Scraper wrote 0 rows** — login or CAPTCHA. Open the board manually, log in, re-run.
 
-**A posting shows "unverified"** — the scraper could not read its requirements. Click Edit and paste them (one per line); the flag clears and the years gate applies. The next scrape also retries automatically (max 2 attempts).
+**A posting shows "unverified"** — the scraper could not read its requirements. Click Edit and paste them (one per line); the flag clears. (The years gate already runs on any figure the scraper could parse, verified or not.) The next scrape also retries automatically (max 2 attempts).
 
 **A posting I want was archived as irrelevant** — the reason is in its notes (expand the row in Done with "Show archived"). Click Reopen; manual overrides are never re-archived in the same run. If the gate itself is wrong, fix the pattern in `config.json` and add a case to `tests/test_gates.py`.
 

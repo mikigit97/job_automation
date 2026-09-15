@@ -65,10 +65,11 @@
     "\\bchief\\b",
     "בכיר",
     "מנהל",
-    "ראש\\s*צוות",
+    "ראש\\S*\\s*צוות",
     "מוביל\\S*\\s*(?:צוות|קבוצה|טכנולוגי)",
     "team\\s*lead",
-    "tech\\s*lead"
+    "tech\\s*lead",
+    "technical\\s*leadership"
   ],
 
   "teaching_titles": [
@@ -86,6 +87,29 @@
     "מרצה",
     "חונ[ךכ]",
     "מור[הים]\\b"
+  ],
+
+  "excluded_titles": [
+    "product\\s*(?:owner|manager)",
+    "devops",
+    "salesforce",
+    "power\\s*bi",
+    "full[\\s-]*stack",
+    "front[\\s-]*end",
+    "back[\\s-]*end",
+    "\\bqa\\b",
+    "\\bsales\\b",
+    "marketing",
+    "\\bdsp\\b",
+    "signal\\s*processing",
+    "embedded",
+    "\\bradar",
+    "\\brf\\b",
+    "bootcamp",
+    "הכשרה",
+    "עיבוד\\s*אותות",
+    "ניווט",
+    "מכ\"ם"
   ],
 
   "clinical_titles": [

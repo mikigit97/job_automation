@@ -17,8 +17,9 @@ never screenshots.
 
 Read three files from the Cowork project root:
 
-1. `config.json` — only for the optional title pre-filter (Step 2):
-   `role_families` (`ai`, `ds`), `seniority_titles`, `teaching_titles`.
+1. `config.json` — only for the title pre-filter (Step 1 / Step 2):
+   `role_families` (`ai`, `ds`), `seniority_titles`, `teaching_titles`,
+   `excluded_titles`.
    Each is a list of regex fragments; treat a list as one case-insensitive
    alternation (`(?:a|b|c)`, flag `i`). Everything else in the file is
    consumed by `ingest.py` / `build_html.py`, not by you.
@@ -77,13 +78,52 @@ are irregular.
 
 ## Step 1 — Boards
 
-Open each board URL below in its own tab.
+All three boards can be read without scrolling virtualised lists or opening
+one detail page at a time: LinkedIn and Drushim expose guest JSON/HTML
+endpoints that `fetch()` can call from any tab on that domain, and AllJobs
+renders full card text on the results page. Open **one tab per board**, run
+the code below in it, and collect the results in `window.__RAW_<board>`.
 
-### Board 1 — LinkedIn
+Method notes that apply to every board (learned on the 2026-09-15 live run):
 
-Run **each** of these keyword queries as its own search (build the URL with
-`encodeURIComponent(q)`), newest first, and process at most **25 cards per
-query**:
+- **Tool output is truncated at ~1 KB.** Never return a large object from
+  `javascript_tool`. Instead write it into the page and read it back with
+  `get_page_text` (cap ≈ 50 KB):
+  ```javascript
+  document.body.innerHTML = '<pre>@@START@@' + JSON.stringify(window.__RAW_LI) + '@@END@@</pre>';
+  ```
+  then call `get_page_text` on that tab and copy the text between the
+  markers into `scrape_raw.json`. Do this only when you are done with the
+  page — it replaces the DOM. If the payload exceeds ~45 KB, dump it in
+  slices (`JSON.stringify(x).slice(0, 45000)`, then `.slice(45000, 90000)`)
+  and concatenate.
+- **Do not `return` or echo function sources that contain URLs** — the
+  extension blanks any output that looks like a query string. Return counts
+  and ids only.
+- **Rate limits.** LinkedIn's guest API answers HTTP 429 after roughly 60
+  requests in a few minutes. Space detail fetches ~2 s apart, and if a fetch
+  returns 429 stop that board, wait 60–120 s, then resume from where you
+  stopped. A record whose detail fetch failed is still written (with
+  `description: null`, `requirements: []`) so `ingest.py` can mark it
+  unverified and Step 1b can retry it next run.
+- **Pre-filter on the title before fetching a detail** (Step 2, gates 2a–2c
+  and the `excluded_titles` list): build the four regexes from
+  `config.json` once, as `window.__FAM`, `__SEN`, `__TEACH`, `__EXCL`, and
+  skip cards whose title fails them. This halves the detail fetches. Never
+  pre-filter on years.
+
+### Board 1 — LinkedIn (guest search + posting APIs)
+
+Two endpoints, both work with the normal logged-in cookie and need no
+scrolling:
+
+| Purpose | URL |
+|---|---|
+| Search page (10 cards per call) | `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=<q>&location=Israel&f_TPR=r<WINDOW_SECONDS>&sortBy=DD&start=<0,10,20>` |
+| One posting's full text | `https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/<ID>` |
+
+Run **each** of these keyword queries, three pages each (`start` = 0, 10,
+20 → up to 30 cards per query):
 
 | # | `keywords` |
 |---|---|
@@ -94,420 +134,283 @@ query**:
 | 5 | `"algorithm developer" OR "algorithm engineer"` |
 | 6 | `מדען נתונים OR למידת מכונה OR מהנדס אלגוריתמים` |
 
-```
-https://www.linkedin.com/jobs/search/?keywords=<encoded q>&location=Israel&f_TPR=r<WINDOW_SECONDS>
-```
-
-- `f_TPR=r<seconds>` is the time window. Compute `WINDOW_SECONDS` from
-  `state.json` (Step 0): seconds since `sources.LinkedIn.last_scrape_at`,
-  rounded up to the hour, **minimum 21600 (6h), maximum 604800 (7d)**. No
-  entry yet → 604800. This is what makes a day with Chrome closed
-  recoverable.
-- Do **not** add `f_E` (experience-level). Israeli postings are tagged
-  inconsistently; the gates in Step 2 do that job.
-- The same job will appear under several queries — dedup by job id in
-  memory before opening any detail view.
-- Requires login; the session cookie persists across runs.
-- Job cards: `listitem` elements in the search results list; each has
-  `a[href*="/jobs/view/"]`.
-
-LinkedIn is a single-page app. Visiting `/jobs/view/<ID>/` directly does
-**not** render the `#job-details` description panel. The panel only loads on
-the search results page when a job is selected via the `currentJobId` query
-parameter. To get each job's description:
-
-```
-https://www.linkedin.com/jobs/search/?keywords=<encoded q>&location=Israel&f_TPR=r<WINDOW_SECONDS>&currentJobId=<ID>
-```
-
-Navigate to that URL, wait ~5 seconds, then run:
+- `f_TPR=r<seconds>`: seconds since `sources.LinkedIn.last_scrape_at` in
+  `state.json`, rounded up to the hour, **minimum 21600 (6 h), maximum
+  604800 (7 d)**; no entry → 604800.
+- No `f_E` (experience-level) filter — the gates do that job.
+- The same job appears under several queries; `__LI_ALL` is keyed by job id
+  so it is collected once.
+- Open any `linkedin.com/jobs/...` page in the tab first so `fetch()` runs
+  same-origin with the session cookie.
 
 ```javascript
-function extractLinkedIn() {
-  const el = document.querySelector('#job-details');
-  if (!el) return null;
-  const text = el.innerText;
-  const sections = { desc: [], resp: [], req: [], nice: [] };
-  // 'desc' captures the lead-in prose before any explicit Responsibilities/
-  // Requirements header. 'about the role' / 'about the company' is treated
-  // as description, not responsibilities.
-  let cur = 'desc';
-  for (const line of text.split('\n').map(l => l.trim()).filter(Boolean)) {
-    const ll = line.toLowerCase();
-    if (ll.includes('about the role') || ll.includes('about the company') || ll.includes('about the job') || ll.includes('company description') || ll.includes('job description')) { cur = 'desc'; continue; }
-    if (ll.includes('responsibilities') || ll.includes('what you will do') || ll.includes('what you’ll do')) { cur = 'resp'; continue; }
-    if (ll.includes('qualifications') || ll.includes('requirements') || ll.includes('you will need') || ll.includes('what you bring')) { cur = 'req'; continue; }
-    if (ll.includes('additional information') || ll.includes('nice to have') || ll.includes('bonus') || ll.includes('preferred')) { cur = 'nice'; continue; }
-    if (line.length < 10) continue;
-    sections[cur].push(line);
+// ---- LinkedIn: define once per tab -------------------------------------
+window.__LI_ALL = window.__LI_ALL || {};          // id -> card
+window.__LI_WINDOW = 604800;                      // set from state.json
+
+window.__liSearch = async function (q, start) {
+  const url = 'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search'
+    + '?keywords=' + encodeURIComponent(q) + '&location=Israel&f_TPR=r' + window.__LI_WINDOW
+    + '&sortBy=DD&start=' + (start || 0);
+  const r = await fetch(url, { credentials: 'include' });
+  if (r.status === 429) throw new Error('429');
+  const html = await r.text();
+  const out = {}; const re = /<li[\s\S]*?<\/li>/g; let m;
+  while ((m = re.exec(html))) {
+    const li = m[0];
+    const idm = li.match(/\/jobs\/view\/[^"'?]*?-?(\d{9,})/) || li.match(/data-entity-urn="urn:li:jobPosting:(\d+)"/);
+    if (!idm) continue;
+    const id = idm[1]; if (out[id]) continue;
+    const g = rx => { const x = li.match(rx); return x ? x[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : ''; };
+    out[id] = {
+      title:   g(/class="base-search-card__title[^"]*"[^>]*>([\s\S]*?)<\//),
+      company: g(/class="base-search-card__subtitle[^"]*"[^>]*>([\s\S]*?)<\/h4>/),
+      loc:     g(/class="job-search-card__location[^"]*"[^>]*>([\s\S]*?)<\//),
+      posted:  g(/datetime="([^"]+)"/),          // YYYY-MM-DD
+    };
   }
-  return {
-    description: sections.desc.join(' ').slice(0, 800) || null,
-    resp: sections.resp,
-    req:  sections.req,
-    nice: sections.nice,
-  };
-}
-extractLinkedIn();
+  return { status: r.status, n: Object.keys(out).length, out };
+};
+
+window.__liQuery = async function (q) {
+  let added = 0, seen = 0;
+  for (const start of [0, 10, 20]) {
+    const t = await window.__liSearch(q, start); seen += t.n;
+    for (const [id, c] of Object.entries(t.out)) if (!window.__LI_ALL[id]) { window.__LI_ALL[id] = c; added++; }
+    if (t.n < 10) break;
+    await new Promise(r => setTimeout(r, 1200));
+  }
+  return { q, seen, added, total: Object.keys(window.__LI_ALL).length };
+};
+
+window.__liDetail = async function (id) {
+  const r = await fetch('https://www.linkedin.com/jobs-guest/jobs/api/jobPosting/' + id, { credentials: 'include' });
+  if (r.status === 429) throw new Error('429');
+  const html = await r.text();
+  const i = html.indexOf('show-more-less-html__markup'); if (i < 0) return null;
+  const start = html.indexOf('>', i) + 1; const end = html.indexOf('</section>', start);
+  let frag = html.slice(start, end > 0 ? end : start + 20000);
+  frag = frag.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|li|div|h\d)>/gi, '\n').replace(/<li[^>]*>/gi, '• ').replace(/<[^>]+>/g, '');
+  const ta = document.createElement('textarea'); ta.innerHTML = frag; const text = ta.value;   // decodes &amp; etc.
+  const lines = text.split('\n').map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const desc = [], resp = [], req = [], nice = []; let cur = 'd';
+  for (const raw of lines) {
+    const line = raw.replace(/^[•*\-–\s]+/, '').trim(); const ll = line.toLowerCase();
+    if (line.length < 60 && /(about the (?:role|job|company|team)|who we are|company description|job description|the role)/.test(ll)) { cur = 'd'; continue; }
+    if (line.length < 60 && /(responsibilit|what you will do|what you'll do|what you’ll do|you will:|your role|day to day|in this role)/.test(ll)) { cur = 'r'; continue; }
+    if (line.length < 60 && /(requirement|qualification|you will need|what you bring|must have|who you are|what we're looking for|what we are looking for|skills)/.test(ll)) { cur = 'q'; continue; }
+    if (line.length < 60 && /(nice to have|bonus|preferred|advantage|plus:)/.test(ll)) { cur = 'n'; continue; }
+    if (line.length < 8 || /^show (more|less)$/i.test(line)) continue;
+    if (cur === 'r') resp.push(line); else if (cur === 'q') req.push(line); else if (cur === 'n') nice.push(line); else desc.push(line);
+  }
+  return { description: desc.join(' ').slice(0, 600) || null, responsibilities: resp.slice(0, 4), requirements: req.slice(0, 6), nice_to_have: nice.slice(0, 3) };
+};
+
+// Fetch details for every collected card that passes the title pre-filter.
+// Resumable: cards already in __RAW_LI or __LI_SKIP are not touched again.
+window.__RAW_LI = window.__RAW_LI || {}; window.__LI_SKIP = window.__LI_SKIP || {};
+window.__liRun = async function (max) {
+  let done = 0, pre = 0, rate = false;
+  for (const [id, c] of Object.entries(window.__LI_ALL)) {
+    if (window.__RAW_LI[id] || window.__LI_SKIP[id]) continue;
+    if (done >= max) break;
+    const t = c.title;
+    if (!window.__FAM.test(t) || window.__SEN.test(t) || window.__TEACH.test(t) || window.__EXCL.test(t)) { window.__LI_SKIP[id] = t; pre++; continue; }
+    const rec = { position: t, company: c.company, link: 'https://www.linkedin.com/jobs/view/' + id + '/', location: c.loc || null,
+                  date: c.posted || null, description: null, responsibilities: [], requirements: [], nice_to_have: [], applied_date: null };
+    try { const d = await window.__liDetail(id); if (d) Object.assign(rec, d); }
+    catch (e) { if (String(e).includes('429')) { rate = true; break; } }
+    window.__RAW_LI[id] = rec; done++;
+    await new Promise(r => setTimeout(r, 1800));
+  }
+  const remaining = Object.keys(window.__LI_ALL).filter(id => !window.__RAW_LI[id] && !window.__LI_SKIP[id]).length;
+  return { fetched: done, prefiltered: pre, stored: Object.keys(window.__RAW_LI).length, remaining, rateLimited: rate };
+};
 ```
 
-To enumerate visible IDs without navigating each one first:
+Call sequence (one `javascript_tool` call each, so a 45-second CDP timeout
+never bites): `__liQuery(q1)` … `__liQuery(q6)` with a 3 s pause between
+queries, then `__liRun(12)` repeatedly until `remaining` is 0. If
+`rateLimited` comes back `true`, wait 90 s and call `__liRun` again — it
+resumes. Finally dump `window.__RAW_LI` through the `<pre>` channel.
+`Object.values(window.__RAW_LI)` is the LinkedIn `postings` array.
 
-```javascript
-const cards = document.querySelectorAll('a[href*="/jobs/view/"]');
-[...new Set([...cards].map(a => a.href.match(/\/jobs\/view\/(\d+)/)?.[1]).filter(Boolean))];
-```
-
-The container div's CSS classes include random hash strings — only rely on
-the `#job-details` id.
-
-**Empty-payload guard — required before writing a LinkedIn record.** If
-`extractLinkedIn()` returns `null`, OR if it returns an object whose
-`description`, `resp`, and `req` are all empty, treat the extraction as
-failed and run the standalone-view fallback (below) plus the
-poster-requirements sweep before accepting the record. A record is written
-with `requirements: []` and `extraction_ok: false` only after BOTH the
-search-view extractor and the standalone-view fallback came back empty.
-
-If a card has `disabled` on `a.job-card-container__link` or is a "Promoted"
-card, `#job-details` often will not render. Before giving up (unverified),
-try the **standalone-view fallback** described below.
-
-**Standalone-view fallback (when `#job-details` is missing).** A direct
-`https://www.linkedin.com/jobs/view/<ID>/` open does not populate
-`#job-details`, but it does render the "About the job" section into the
-page body within a few seconds of scroll. The body needs both a wait and a
-scroll — otherwise it shows only skeleton placeholders. Use this whenever
-`extractLinkedIn()` returns `null` or empty arrays:
-
-```javascript
-// Run AFTER: navigate /jobs/view/<ID>/, wait ~6s, scroll body 5+ ticks, wait ~3s.
-function extractLinkedInStandalone() {
-  var full = document.body.innerText;
-  var idx = full.toLowerCase().indexOf('about the job');
-  if (idx < 0) return null;
-  var endMarkers = ['Set alert', 'See more jobs', 'People you may know',
-                    'Job search smarter', '\nAbout\n', 'Accessibility',
-                    'Talent Solutions', 'Show more', 'Show less'];
-  var endIdx = full.length;
-  for (var m of endMarkers) {
-    var i = full.indexOf(m, idx + 10);
-    if (i > 0 && i < endIdx) endIdx = i;
-  }
-  var body = full.slice(idx, endIdx).trim();
-  var sec = { desc: [], resp: [], req: [], nice: [] };
-  var cur = 'desc';
-  for (var line of body.split('\n').map(l => l.trim()).filter(Boolean)) {
-    var ll = line.toLowerCase();
-    if (/^about the (?:job|role|company)/.test(ll) || ll === 'company description' || ll === 'job description') { cur = 'desc'; continue; }
-    if (/(responsibilities|what you will do|what you'll do|what you’ll do|the role)/.test(ll) && line.length < 60) { cur = 'resp'; continue; }
-    if (/(qualifications|requirements|you will need|what you bring|must have)/.test(ll) && line.length < 60) { cur = 'req'; continue; }
-    if (/(nice to have|bonus|preferred|additional information|advantage)/.test(ll) && line.length < 60) { cur = 'nice'; continue; }
-    if (line.length < 5) continue;
-    sec[cur].push(line);
-  }
-  return {
-    description: sec.desc.join(' ').slice(0, 800) || null,
-    resp: sec.resp.slice(0, 8),
-    req:  sec.req.slice(0, 8),
-    nice: sec.nice.slice(0, 4),
-  };
-}
-```
-
-Merge the standalone result and the poster-requirements sweep into the
-record, then continue. Only leave the record unverified (`requirements: []`,
-`extraction_ok: false`) if BOTH paths return empty.
-
-**"Requirements added by the job poster" — capture separately.** LinkedIn
-renders a structured poster-added requirements block (commute, onsite,
-years-of-experience by skill — e.g., "5+ years of work experience with
-Python"). On collapsed posts and on some templates this block lives outside
-`#job-details`, so `extractLinkedIn()` misses it and the card would land in
-`jobs.json` unverified, bypassing the years gate.
-Sweep the whole page for it and merge into the requirements array before
-running the Step 2 filters:
-
-```javascript
-function extractLinkedInPosterRequirements() {
-  const out = [];
-  for (const el of document.querySelectorAll('h2,h3,h4,span,strong,div')) {
-    const t = (el.innerText || '').trim();
-    if (!/^requirements added by the job poster$/i.test(t)) continue;
-    const block = el.closest('section, div');
-    if (!block) continue;
-    for (const line of (block.innerText || '').split('\n').map(l => l.trim()).filter(Boolean)) {
-      if (/^requirements added by the job poster$/i.test(line)) continue;
-      if (line.length < 4) continue;
-      out.push(line);
-    }
-  }
-  // Dedup while preserving order.
-  return [...new Set(out)];
-}
-// After calling extractLinkedIn():
-//   const posterReqs = extractLinkedInPosterRequirements();
-//   sections.req = [...(sections.req || []), ...posterReqs];
-```
-
-NBN Connect's Computer Vision Engineer post (2026-05-23) is the canonical
-failure case — `#job-details` returned nothing, but the poster block listed
-`5+ years of work experience with Python`. With the sweep above the
-Step 2g years gate catches it.
+The old DOM route (`#job-details`, `currentJobId`, standalone `/jobs/view/`
+scroll-and-wait) is no longer needed; it is slower and the list is
+virtualised to ~7 visible cards.
 
 ### Board 2 — AllJobs
 
 ```
-https://www.alljobs.co.il/SearchResultsGuest.aspx?page=1&position=1733&type=&city=&region=
+https://www.alljobs.co.il/SearchResultsGuest.aspx?page=<1..4>&position=1733&type=&city=&region=
 ```
 
-- Position code `1733` = Data Scientist. Codes `49` and `52` still work for
-  older DS / AI/ML buckets.
-- Guest access works, but logging in is better — anonymous ("חברה דיסקרטית")
-  listings resolve to their real company names once you're signed in. The
-  session cookie persists across runs.
-- **Homepage cookie required** even when logged in: visit
-  `https://www.alljobs.co.il/` first. Without that, the search URL returns
-  `/ErrorUnderConstruction.html`.
+- Position code `1733` = Data Scientist. Code `52` returns nothing now;
+  `49` still works for the older DS/ML bucket. Four pages of ~26 cards.
+- Visit `https://www.alljobs.co.il/` first for the cookie, or the search URL
+  redirects to `/ErrorUnderConstruction.html`.
+- **Guest view hides most employers.** On the 2026-09-15 run 45 of 56 cards
+  were hidden-employer cards; only 5 were kept. Logging in to AllJobs in
+  Chrome exposes the names — until then this board contributes little.
 
-**Link template — do not use the DOM href.** AllJobs result cards link to
-`/Search/ViewJob.aspx?JobID=<id>`, which errors out ("page not found") when
-opened directly. The working canonical URL is
-`/Search/UploadSingle.aspx?JobID=<id>`. Extract the `JobID` from the card
-and rebuild the link yourself; never store the raw `ViewJob.aspx` URL. This
-also collapses near-duplicates when the same job appears with different
-query params across result pages.
+**Link template.** Always build
+`https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=<id>` from the
+card's `JobID`; the DOM href (`ViewJob.aspx`) 404s.
 
-The search results page loads the full card text for every job, so you do not
-need to open individual job pages.
-
-**Card discovery — walk up to the Location row, not a fixed depth.** The
-naive pattern `a.parentElement.parentElement.parentElement` fails because
-each card exposes several anchors with `JobID=` (the title link, the
-quick-apply button, a share button), and they sit at different depths.
-A depth-3 walk from the wrong anchor lands on a sibling card, producing a
-systematic position↔JobID mismatch — on the previous real run this hit 16
-of 18 postings. Use the "Location:" / "מיקום המשרה:" row as a content
-anchor instead, then walk *up* until an ancestor's text contains it. That
-ancestor is the true card.
+**Card layout.** Each card's lines, read from the "Location:" /
+"מיקום המשרה:" row upward, are `[..., <age>, <position>, <company>,
+Location:]` for a named employer and `[..., <age>, <position>, Location:]`
+for a hidden one — the company line is simply missing, so a fixed offset
+puts the age ("6 ימים", "היום", a date) into `position`. Detect that and
+mark the company as `חברה חסויה`; `ingest.py` drops those when
+`drop_anonymous_alljobs` is on.
 
 ```javascript
 const LOC_RE = /(?:^|\n)\s*(?:Location:|מיקום המשרה:)/;
-
-function findCard(anchor) {
+const AGE_RE = /^(?:\d+\s*ימים|יום|היום|אתמול|לפני|\d{1,2}\/\d{1,2}\/\d{2,4})/;
+function findCard(anchor) {                       // walk up to the element that holds the Location row
   let node = anchor.parentElement;
-  for (let i = 0; i < 10 && node && node !== document.body; i++) {
-    if (LOC_RE.test(node.innerText || '')) return node;
-    node = node.parentElement;
-  }
+  for (let i = 0; i < 10 && node && node !== document.body; i++) { if (LOC_RE.test(node.innerText || '')) return node; node = node.parentElement; }
   return null;
 }
-
-function positionAndCompany(lines) {
-  // The Location row is a stable anchor; position sits two lines above it,
-  // company one line above. Fall back to the first two lines if missing.
+function parseCard(lines) {
   const i = lines.findIndex(l => /^(?:Location:|מיקום המשרה:)/.test(l));
-  if (i >= 2) return { position: lines[i - 2], company: lines[i - 1] };
-  return { position: lines[0] || 'N/A', company: lines[1] || 'N/A' };
-}
-
-window.__allJobsData = {};
-for (const a of document.querySelectorAll('a[href*="JobID="]')) {
-  const id = new URL(a.href).searchParams.get('JobID');
-  if (!id || window.__allJobsData[id]) continue;   // first anchor per id wins
-  const card = findCard(a);
-  if (!card) continue;
-  const lines = card.innerText.split('\n').map(l => l.trim()).filter(l => l.length > 2);
-  const { position, company } = positionAndCompany(lines);
-  window.__allJobsData[id] = {
-    link: `https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=${id}`,
-    position,
-    company,
-    lines,
-  };
-}
-Object.keys(window.__allJobsData).length + ' jobs stored';
-```
-
-**Sanity check before writing.** Print `[id, position, company]` for every
-entry. If any `position` starts with `Location:`, is a bare date, equals the
-string `חברה חסויה`, or is shorter than 4 chars, the card walk fell through
-— log the failing JobID and skip it instead of writing garbage to
-`jobs.json`.
-
-Parse sections per card (compact format to avoid output truncation). Call
-this with `window.__allJobsData[id].lines` — the first thing it does is
-skip the metadata block above the Location row (position, company, posting
-date) so those never leak into `responsibilities`:
-
-```javascript
-function parseSections(texts) {
-  // Skip metadata: everything before and including the Location row.
-  const startIdx = texts.findIndex(l => /^(?:Location:|מיקום המשרה:)/.test(l));
-  const body = startIdx >= 0 ? texts.slice(startIdx + 1) : texts;
-
-  const desc = [], resp = [], req = [], nice = [];
-  // 'cur' starts at 'd' (description) — the lead-in prose before any
-  // explicit "Responsibilities" / "Requirements" header gets captured into
-  // description rather than mis-bucketed.
-  let cur = 'd';
-  const RA = ['תחומי אחריות', 'responsibilities', 'אנחנו מגייסים', 'תפקיד כולל', 'design,', 'develop'];
-  const QA = ['דרישות', 'requirements', 'ניסיון מקצועי', 'חובה:', 'must have'];
-  const NA = ['יתרון', 'nice to have', 'bonus', 'preferred'];
-  const SKIP = ['מיקום', 'location:', 'סוג משרה', 'job type', 'היום', 'לפני',
-                'המשרה מיועדת', 'לעוד משרות', 'חברת השמה'];
+  let position, company;
+  if (i >= 2 && !AGE_RE.test(lines[i - 2])) { position = lines[i - 2]; company = lines[i - 1]; }
+  else if (i >= 1)                            { position = lines[i - 1]; company = 'חברה חסויה'; }
+  else                                        { position = lines[0] || ''; company = lines[1] || ''; }
+  const location = i >= 0 ? lines[i].replace(/^(?:Location:|מיקום המשרה:)\s*/, '') : null;
+  // sections: check headers BEFORE the short-line skip — "דרישות:" is only 7 chars
+  const body = i >= 0 ? lines.slice(i + 1) : lines;
+  const desc = [], resp = [], req = [], nice = []; let cur = 'd';
+  const RA = ['תחומי אחריות', 'responsibilities', 'key responsibilities', 'תפקיד כולל', 'תיאור התפקיד'];
+  const QA = ['דרישות', 'requirements', 'qualifications', 'ניסיון מקצועי', 'חובה:', 'must have'];
+  const NA = ['יתרון', 'nice to have', 'bonus', 'preferred', 'advantage'];
+  const SKIP = ['job type', 'סוג משרה', 'המשרה מיועדת', 'לעוד משרות', 'חברת השמה', 'שלח קורות חיים', 'send cv'];
   for (const line of body) {
     const ll = line.toLowerCase();
-    if (RA.some(k => ll.includes(k))) { cur = 'r'; continue; }
-    if (QA.some(k => ll.includes(k))) { cur = 'q'; continue; }
-    if (NA.some(k => ll.includes(k))) { cur = 'n'; continue; }
+    if (line.length < 40 && RA.some(k => ll.includes(k))) { cur = 'r'; continue; }
+    if (line.length < 40 && QA.some(k => ll.includes(k))) { cur = 'q'; continue; }
+    if (line.length < 40 && NA.some(k => ll.includes(k))) { cur = 'n'; continue; }
     if (SKIP.some(k => ll.includes(k)) || line.length < 8) continue;
-    if      (cur === 'r') resp.push(line);
-    else if (cur === 'q') req.push(line);
-    else if (cur === 'n') nice.push(line);
-    else                  desc.push(line);
+    const clean = line.replace(/^[•*\-–\s]+/, '');
+    if (cur === 'r') resp.push(clean); else if (cur === 'q') req.push(clean); else if (cur === 'n') nice.push(clean); else desc.push(clean);
   }
-  return {
-    description: desc.join(' ').slice(0, 600) || null,
-    resp: resp.slice(0, 4),
-    req:  req.slice(0, 4),
-    nice: nice.slice(0, 2),
-  };
+  return { position, company, location, description: desc.join(' ').slice(0, 600) || null,
+           responsibilities: resp.slice(0, 4), requirements: req.slice(0, 6), nice_to_have: nice.slice(0, 3) };
 }
+window.__RAW_AJ = window.__RAW_AJ || {};
+let hidden = 0;
+for (const a of document.querySelectorAll('a[href*="JobID="]')) {
+  const id = new URL(a.href).searchParams.get('JobID');
+  if (!id || window.__RAW_AJ[id]) continue;
+  const card = findCard(a); if (!card) continue;
+  const lines = card.innerText.split('\n').map(l => l.trim()).filter(l => l.length > 1);
+  const p = parseCard(lines);
+  if (p.company === 'חברה חסויה') { hidden++; continue; }        // skip early, they are dropped anyway
+  if (!p.position || p.position.length < 4 || AGE_RE.test(p.position)) continue;   // card walk fell through
+  window.__RAW_AJ[id] = { position: p.position, company: p.company, link: 'https://www.alljobs.co.il/Search/UploadSingle.aspx?JobID=' + id,
+                          location: p.location, date: null, description: p.description, responsibilities: p.responsibilities,
+                          requirements: p.requirements, nice_to_have: p.nice_to_have, applied_date: null };
+}
+JSON.stringify({ kept: Object.keys(window.__RAW_AJ).length, hiddenOnThisPage: hidden });
 ```
 
-### Board 3 — Drushim
+Run it on each of the four pages (`window.__RAW_AJ` accumulates because the
+tab stays on alljobs.co.il), then dump `Object.values(window.__RAW_AJ)`
+through the `<pre>` channel. Report the hidden count in the summary.
+
+### Board 3 — Drushim (guest JSON API)
+
+Drushim is a Next.js site now; the old `window.__NUXT__` cache and the
+`/jobs/subcat/...?experience=1-2` filter URL are gone (the latter returns 0
+results). The search page's own data source is a public JSON endpoint that
+`fetch()` can call directly from any drushim.co.il tab:
 
 ```
-https://www.drushim.co.il/jobs/subcat/488-511-512-702-703/?experience=1-2&ssaen=3
+https://webapi.drushim.co.il/api/jobs/search?SearchTerm=<q>&page=<0-based>&ssaen=1&isAA=true
 ```
 
-This is the saved filter for algorithm-developer / DS / ML roles at the
-1–2 years experience level. Breakdown:
-- `subcat/488-511-512-702-703/` — the five sub-categories that cover
-  algorithm developer, data scientist, ML, and adjacent roles.
-- `experience=1-2` — caps to junior listings.
-- `ssaen=3` — the match-mode that pairs with this filter URL. (Note: it's
-  `ssaen=3` here, not `ssaen=1` from the keyword-search variant — don't
-  swap them.)
-
-**Sanity-check the filter loaded.** Before extracting, confirm the active
-filter chips rendered. The chip container is at this XPath:
+Response: `ResultList[]` (25 per page), `TotalSearchResultCount`,
+`TotalPagesNumber`, `NextPageNumber` (`-1` on the last page). Each item:
 
 ```
-/html/body/div[1]/div[2]/div/div/div[3]/div[1]/div[3]/div/div/div/div/div/div[2]/div/div[2]/div/div/div[2]/div[2]
+JobInfo.JobCode, JobInfo.Hash, JobInfo.Date (ISO), JobInfo.SeekerJobStatus
+JobContent.Name, JobContent.Description (HTML), JobContent.Requirements (HTML),
+JobContent.Experience.NameInHebrew ("1-2 שנים", "שנתיים", "ללא ניסיון" …),
+JobContent.Zones[0].NameInHebrew, Company.CompanyDisplayName
 ```
 
-Run a quick check in the page:
+`JobContent.Requirements` carries the real requirements text (the page's
+`__NEXT_DATA__` only has the description), so use the API, not the DOM.
+Run these keyword queries, all pages each:
+
+| # | `SearchTerm` |
+|---|---|
+| 1 | `data scientist` |
+| 2 | `machine learning` |
+| 3 | `AI engineer` |
+| 4 | `NLP` |
+| 5 | `מדען נתונים` |
+| 6 | `אלגוריתמים` |
 
 ```javascript
-const node = document.evaluate(
-  '/html/body/div[1]/div[2]/div/div/div[3]/div[1]/div[3]/div/div/div/div/div/div[2]/div/div[2]/div/div/div[2]/div[2]',
-  document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null
-).singleNodeValue;
-node ? node.innerText : 'FILTER CHIPS NOT FOUND';
-```
-
-If that returns `'FILTER CHIPS NOT FOUND'` or empty text, the filter URL
-didn't apply (Drushim sometimes redirects on cold sessions) — reload the
-URL once, then bail on this board if it fails again.
-
-Drushim ships a Nuxt fetch cache that already has every visible job as
-structured JSON, so per-card navigation is unnecessary. (On individual
-job-page URLs `https://www.drushim.co.il/job/<id>/<hash>/` the same
-payload lives at `window.__NUXT__.data[0].jobData` — use that path if you
-ever need to re-scrape a single posting.)
-
-```javascript
-const keys = Object.keys(window.__NUXT__.fetch);
-let jobs = [];
-for (const k of keys) {
-  const d = window.__NUXT__.fetch[k];
-  if (d && d.searchRes && Array.isArray(d.searchRes)) { jobs = d.searchRes; break; }
-}
-// Each entry:
-//   jobs[i].JobInfo.JobCode              → numeric id
-//   jobs[i].JobInfo.Hash                 → url hash
-//   jobs[i].JobInfo.Date                 → ISO date
-//   jobs[i].Company.CompanyDisplayName   → company
-//   jobs[i].JobContent.Name              → position title
-//   jobs[i].JobContent.AboutCompany      → HTML description (when present)
-//   jobs[i].JobContent.JobDescription    → HTML description (alt key on some payloads)
-//   jobs[i].JobContent.Description       → HTML responsibilities
-//   jobs[i].JobContent.Requirements      → HTML requirements
-//   jobs[i].JobContent.Zones[0].CityName → location
-// URL: 'https://www.drushim.co.il/job/' + JobCode + '/' + Hash.toLowerCase() + '/'
-```
-
-Compact extraction (Hebrew text is dense; trim early to stay under tool
-output caps):
-
-```javascript
-function stripHtml(s) {
-  return (s || '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-// Build a JobCode → "already applied" map from the rendered DOM. Drushim
-// shows "שלחת קו"ח ב - DD-MM-YYYY" on cards whose CV the logged-in user
-// already submitted. That state lives in the DOM, not in the Nuxt JSON
-// cache (which is shared/anonymous and reports every job as unapplied).
-//
-// Walk OUTWARD from each badge span — never inward from the job link.
-// The naive direction (walk up from each job link, check ancestor.innerText
-// for the marker) over-matches: once the ancestor expands to the whole
-// results list, every card under it inherits all the badges and gets
-// flagged. Validated 2026-04-26: that direction marked 25/25 as applied
-// when only 17 actually were. The inverse direction lands on the correct
-// 17.
-const APPLIED_RE = /שלחת\s*קו["׳']ח\s*ב\s*-?\s*(\d{2})-(\d{2})-(\d{4})/;
-window.__DJ_APPLIED = new Map();   // JobCode -> "YYYY-MM-DD" the CV was sent
-for (const el of document.querySelectorAll('*')) {
-  const ownText = [...el.childNodes]
-    .filter(n => n.nodeType === 3)
-    .map(n => n.textContent)
-    .join(' ');
-  const dm = ownText.match(APPLIED_RE);
-  if (!dm) continue;
-  const appliedDate = `${dm[3]}-${dm[2]}-${dm[1]}`;
-  // From the badge text node, walk up until an ancestor contains a
-  // /job/<id>/ link — that link belongs to the card that owns the badge.
-  let node = el;
-  for (let i = 0; i < 12 && node; i++) {
-    const a = node.querySelector?.('a[href*="/job/"]');
-    if (a) {
-      const m = a.href.match(/\/job\/(\d+)\//);
-      if (m) { window.__DJ_APPLIED.set(m[1], appliedDate); break; }
+// Open https://www.drushim.co.il/jobs/search/data%20scientist/?ssaen=1 first (same-origin cookie).
+window.__RAW_DR = window.__RAW_DR || {};
+const strip = s => (s || '').replace(/<br\s*\/?>|<\/(p|li|div)>/gi, '\n').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/[ \t]+/g, ' ').trim();
+const toLines = s => strip(s).split(/\n|(?<=\.)\s+(?=[A-Zא-ת])|\s+[•·]\s+|\s+-\s+/).map(x => x.trim()).filter(x => x.length > 3);
+window.__drQuery = async function (q) {
+  let added = 0, page = 0, pages = 1;
+  while (page < pages && page < 6) {
+    const r = await fetch('https://webapi.drushim.co.il/api/jobs/search?SearchTerm=' + encodeURIComponent(q) + '&page=' + page + '&ssaen=1&isAA=true', { credentials: 'include' });
+    const j = await r.json(); pages = j.TotalPagesNumber || 1;
+    for (const x of (j.ResultList || [])) {
+      const code = String(x.JobInfo.JobCode); if (window.__RAW_DR[code]) continue;
+      const exp = x.JobContent.Experience && x.JobContent.Experience.NameInHebrew;
+      const req = toLines(x.JobContent.Requirements);
+      if (exp) req.unshift('ניסיון: ' + exp);                         // structured field -> years_min parser
+      window.__RAW_DR[code] = {
+        position: x.JobContent.Name || x.JobContent.FullName || '', company: x.Company.CompanyDisplayName || x.Company.NameInHebrew || '',
+        link: 'https://www.drushim.co.il/job/' + code + '/' + String(x.JobInfo.Hash || '').toLowerCase() + '/',
+        location: x.JobContent.Zones && x.JobContent.Zones[0] ? x.JobContent.Zones[0].NameInHebrew : null,
+        date: (x.JobInfo.Date || '').slice(0, 10) || null,
+        description: strip(x.JobContent.Description).slice(0, 600) || null,
+        responsibilities: [], requirements: req.slice(0, 7), nice_to_have: [],
+        applied_date: null, seeker_status: x.JobInfo.SeekerJobStatus };
+      added++;
     }
-    node = node.parentElement;
+    if (j.NextPageNumber === -1 || j.NextPageNumber == null) break;
+    page = j.NextPageNumber;
+    await new Promise(r => setTimeout(r, 800));
   }
-}
-
-window.__DJ = jobs.map(j => ({
-  id:       j.JobInfo.JobCode,
-  hash:     j.JobInfo.Hash,
-  title:    j.JobContent.Name || j.JobContent.FullName || '',
-  company:  j.Company.CompanyDisplayName || j.Company.NameInHebrew || '',
-  location: j.JobContent.Zones?.[0]?.CityName || '',
-  date:     (j.JobInfo.Date || '').slice(0, 10),
-  desc:     stripHtml(j.JobContent.AboutCompany || j.JobContent.JobDescription || '').slice(0, 600) || null,
-  resp:     stripHtml(j.JobContent.Description || '').slice(0, 500),
-  req:      stripHtml(j.JobContent.Requirements || '').slice(0, 600),
-  applied:  window.__DJ_APPLIED.get(String(j.JobInfo.JobCode)) || null,   // date string or null
-}));
-// Split resp/req into lines on sentence/bullet boundaries (". ", " - ", "•", "·")
-// so they become arrays; keep at most 6 requirement lines and 4 responsibilities.
-// If output gets truncated, stash window.__DJS = JSON.stringify(window.__DJ)
-// and read it in slices: window.__DJS.slice(0, 3600), .slice(3600, 7200), ...
+  return { q, added, total: Object.keys(window.__RAW_DR).length };
+};
 ```
 
+One `__drQuery(q)` call per query, then dump `Object.values(window.__RAW_DR)`
+through the `<pre>` channel.
+
+**Already-applied import.** As a guest every item reports
+`SeekerJobStatus: 0` and the page shows no "שלחת קו"ח" badge, so this run
+could not import applied jobs. When the user is logged in to Drushim in
+Chrome, check whether `SeekerJobStatus` becomes non-zero on jobs they
+applied to; if it does, set `applied_date` to `JobInfo.Date`'s date part
+(the true send date is not in the payload) and note "date = posting date"
+— `ingest.py` then imports the record as `applied`. If the field stays 0
+when logged in, fall back to the DOM badge walk described in the git
+history of this file (commit f54293f).
+
+Apply the title pre-filter here too: skip items whose `JobContent.Name`
+fails `__FAM` / hits `__SEN`, `__TEACH`, `__EXCL` before storing, and keep
+the counts for the summary.
 
 ## Step 1b — Re-verify unverified postings (before scraping new ones)
 
 For each record in `to_verify` (Step 0), open its `link` and run the same
-extractor you would use for its `source` (LinkedIn: search-view with
-`currentJobId`, then the standalone fallback and the poster-requirements
-sweep; AllJobs: the card parser on the results page or the
-`UploadSingle.aspx` page; Drushim: `window.__NUXT__.data[0].jobData`).
+extractor you would use for its `source` (LinkedIn: `__liDetail(<id>)`;
+AllJobs: the card parser on the results page or the `UploadSingle.aspx`
+page; Drushim: the search API with the query that found it, matched on
+`JobInfo.JobCode`).
 Then add what you extracted to `scrape_raw.json` (Step 2) under that
 record's `source`, with the **same `link`**. `ingest.py` merges only empty
 fields, bumps `extraction_attempts`, and recomputes `extraction_ok`. If it is
@@ -569,9 +472,10 @@ extracted id, never trust the DOM anchor's href:
 | 2b | Seniority | title | matches `seniority_titles` | *drop* (`senior`) |
 | 2c | Teaching | title | matches `teaching_titles` | *drop* (`teaching`) |
 | 2d | Clinical | title | matches `clinical_titles` | *drop* (`clinical`). ML roles at medtech companies are **kept**. |
+| 2d' | Excluded role | title | matches `excluded_titles` (product/devops/full-stack/DSP/signal-processing/navigation/bootcamp… titles that only *mention* AI) | *drop* (`other`) |
 | 2e | Anonymous employer | company | AllJobs + `anonymous_companies` (when `drop_anonymous_alljobs`) | *drop* (`anonymous`) |
 | 2f | Verified? | text | ≥2 requirement lines or ≥200-char description → `extraction_ok` | *flag* only |
-| 2g | Years | text | only if verified: lower bound of the stated range > `years_max` | *drop* (`years`) |
+| 2g | Years | text | lower bound of the stated range > `years_max`, whenever a figure could be parsed (verified or not) | *drop* (`years`) |
 | 2h | Agency | company | `agencies` list / `agency_patterns` | *flag* |
 | 2i | Known link | link | already in `jobs.json` (any status) | enrich empty fields; Drushim `applied_date` on a `new` record → `applied` |
 | 2j | Duplicate | key | normalized company\|position already known | *drop* (`duplicate`) |
@@ -581,11 +485,10 @@ Drushim card with `applied_date`, as `status: "applied"`, `applied_via:
 "manual"`, `applied_at: <date>`, with an import note. Gates 2a–2g are
 skipped for those imports.
 
-**Use 2a–2c yourself as a pre-filter** to save time: don't open the detail
-view of a LinkedIn card whose *title* is clearly outside the AI/DS families,
-or says senior/lead/manager, or is a teaching role. `ingest.py` would drop it
-anyway. Never pre-filter on years or on anything you'd need the detail page
-for.
+**Use 2a–2d' yourself as a pre-filter** (the `__FAM` / `__SEN` / `__TEACH`
+/ `__EXCL` regexes in Step 1) so you never fetch a detail for a card whose
+*title* `ingest.py` would drop anyway. Never pre-filter on years or on
+anything you'd need the detail page for.
 
 ## Step 3 — After the two commands
 
@@ -597,7 +500,7 @@ write any other files; do not edit `jobs.json` directly.
 ## Step 4 — Summary
 
 ```
-Boards: LinkedIn <n cards seen, window r<seconds>> · AllJobs <n> · Drushim <n> · skipped: <none | board (reason)>
+Boards: LinkedIn <cards seen / detail fetched / pre-filtered, window r<seconds>, 429s: n> · AllJobs <kept / hidden-employer> · Drushim <cards seen / kept> · skipped: <none | board (reason)>
 ingest:  <the line ingest.py printed>
 build:   <the lines build_html.py printed>
 ```
@@ -607,10 +510,13 @@ build:   <the lines build_html.py printed>
 - **Login / CAPTCHA**: pause and wait for the user. Do not retry
   automatically. If it isn't resolved, skip that board and leave its
   `state.json` entry unchanged.
-- **Runtime cap**: 6 minutes total. If exceeded, write whatever you already
-  collected (Step 5) and stop.
-- **Per query**: at most 25 LinkedIn cards; **same listing seen 10 times in a
-  row**: move on.
+- **Runtime cap**: 10 minutes total (a full run with ~100 LinkedIn details
+  and two rate-limit pauses takes ~8). If exceeded, dump what you have,
+  write `scrape_raw.json` with `finished: false` for the unfinished board,
+  and stop.
+- **HTTP 429 from LinkedIn**: pause 90 s, resume with `__liRun`; after a
+  second 429 in the same run, mark the board `finished: false`.
+- **Per query**: 30 LinkedIn cards (3 API pages), all Drushim pages up to 6.
 - **`requests` in the Python sandbox is proxy-blocked** — all scraping goes
   through Claude in Chrome.
 - **Never write `["N/A"]`; never edit `jobs.json` by hand** — `ingest.py`

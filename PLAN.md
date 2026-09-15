@@ -44,9 +44,9 @@ Archived/rejected records stay in the file as dedup memory.
 Applied to `status: new` only; `manual-` ids exempt.
 1. Title must match a role family: `ai` (AI/LLM/NLP/GenAI) or `ds` (data scientist / ML / algorithm / CV / research).
 2. No seniority word (senior, lead, principal, staff, manager, head of, …; בכיר, מנהל, ראש צוות, מוביל צוות).
-3. No teaching title (mentor, instructor, מנחה, הדרכה, …). No clinical title (nurse, physician, …).
+3. No teaching title (mentor, instructor, מנחה, הדרכה, …). No clinical title (nurse, physician, …). No excluded role (`excluded_titles`: product owner, DevOps, full-stack, Salesforce, Power BI, DSP / signal processing / navigation / radar, bootcamp — titles that only mention AI).
 4. AllJobs anonymous company (חברה חסויה) dropped — toggle `drop_anonymous_alljobs`.
-5. `years_min > years_max` (3) only when `extraction_ok`; unverified postings are never gated on years.
+5. `years_min > years_max` (3) whenever a years figure was parsed — verified or not. No figure → no gate.
 6. Expiry after `expiry_days` (21). Secondary dedup on normalized company|position.
 
 Fit tier (sorting only): strong = family + (junior title or ≤2y) + verified + not agency;

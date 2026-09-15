@@ -84,8 +84,8 @@ Build each record with `source = "NVIDIA"` and `company = "NVIDIA"`. Description
 sections come from the job-detail page (`/careers/job/<id>`) under the
 `Responsibilities` / `What we need to see` / `Ways to stand out` headers.
 **Open the detail page** — without it the record is unverified
-(`requirements: []`, `extraction_ok: false`) and the years gate can't run,
-which for big tech means most postings would slip into the Inbox unfiltered.
+(`requirements: []`, `extraction_ok: false`) and the years gate has nothing
+to parse, which for big tech means most postings would slip into the Inbox unfiltered.
 
 ### Board 5 — Google
 
@@ -226,10 +226,10 @@ Board notes:
   kept; a "Clinical Research Coordinator" is dropped.
 - 2g (years): the years live in "Minimum qualifications" / "Basic
   qualifications" — make sure that section is in `requirements` or
-  `description`, otherwise the record is unverified and skips the gate.
+  `description`, otherwise there is no figure to gate on.
   Expect most postings to fail the years gate; that is the point.
-- Title pre-filter (2a–2c) is allowed before opening a detail page, as in
-  `scrape.md`.
+- Title pre-filter (2a–2d', incl. `excluded_titles`) is allowed before opening
+  a detail page, as in `scrape.md`.
 
 Canonical `link` templates:
 
@@ -256,6 +256,6 @@ build:   <the lines build_html.py printed>
 - **Same empty result 3 runs in a row**: surface the URL and extraction
   snippet to the user so they can inspect — the DOM may have shifted.
 - **Detail-page fetches are not optional here.** A listing card alone gives
-  an unverified record, and unverified records skip the years gate. If time
+  an unverified record with no years figure to gate on. If time
   runs out, stop adding postings rather than adding unverified ones; the
   next run's Step 1b re-verify pass (from `scrape.md`) covers the rest.

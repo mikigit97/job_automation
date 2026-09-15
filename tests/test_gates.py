@@ -91,9 +91,24 @@ class RelevanceGate(unittest.TestCase):
         self.assertFalse(keep)
         self.assertIn("4+", why)
 
-    def test_years_gate_skipped_when_unverified(self):
-        # Only one requirement line and no description -> extraction_ok False -> never gate on years.
-        self.assertTrue(self.keep(requirements=["5+ years of experience"])[0])
+    def test_years_gate_applies_even_when_unverified(self):
+        # One structured line (Drushim style) is enough evidence to gate on.
+        keep, why = self.keep(requirements=["ניסיון: 5 שנים"])
+        self.assertFalse(keep)
+        self.assertIn("5+", why)
+        # ...but with no years figure at all, an unverified record is kept.
+        self.assertTrue(self.keep(requirements=["Python"])[0])
+
+    def test_excluded_roles_fail(self):
+        for t in ["AI Product Owner", "AI Platform & DevOps Engineer", "Full Stack & Python AI Engineer",
+                  "מפתח/ת Power BI עם ידע ב AI", "Next-gen Communications DSP & AI Software Development Engineer",
+                  "מהנדס.ת אלגוריתמים ועיבוד אותות", "מהנדס.ת אלגוריתמי ניווט",
+                  "AI Researcher: הכשרה ללא עלות ושילוב במשרה"]:
+            keep, why = self.keep(position=t)
+            self.assertFalse(keep, t)
+            self.assertIn("excluded", why)
+        self.assertTrue(self.keep(position="AI Engineer")[0])
+        self.assertTrue(self.keep(position="Computer Vision Algorithm Engineer")[0])
 
     def test_anonymous_alljobs_dropped(self):
         keep, why = self.keep(source="AllJobs", company="חברה חסויה")

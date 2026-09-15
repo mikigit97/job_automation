@@ -77,6 +77,7 @@ class Config:
         self.seniority = _rx(raw.get("seniority_titles", []))
         self.teaching = _rx(raw.get("teaching_titles", []))
         self.clinical = _rx(raw.get("clinical_titles", []))
+        self.excluded = _rx(raw.get("excluded_titles", []))
         self.anonymous = [s.lower() for s in raw.get("anonymous_companies", [])]
         self.agencies = [s.lower() for s in raw.get("agencies", [])]
         self.agency_patterns = _rx(raw.get("agency_patterns", []))
@@ -244,11 +245,15 @@ def is_relevant(job: dict, cfg: Config) -> tuple[bool, str]:
         return False, "teaching/mentoring title"
     if cfg.clinical.search(pos):
         return False, "clinical title"
+    if cfg.excluded.search(pos):
+        return False, "excluded role (not AI/ML/DS)"
     if (cfg.drop_anonymous_alljobs and (job.get("source") or "").lower() == "alljobs"
             and is_anonymous(job.get("company"), cfg)):
         return False, "anonymous AllJobs company"
     ym = job.get("years_min")
-    if job.get("extraction_ok") and ym is not None and ym > cfg.years_max:
+    if ym is not None and ym > cfg.years_max:
+        # Gate on any parsed figure: a years line is evidence even when the rest
+        # of the extraction is thin (e.g. Drushim's structured "ניסיון" field).
         return False, f"requires {ym}+ years"
     return True, ""
 
