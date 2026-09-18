@@ -280,6 +280,12 @@ filtered by reason / agency / unverified). `build_html.py` prints the
 migration, maintenance and fit-tier summary. Put both in your report. Do not
 write any other files; do not edit `jobs.json` directly.
 
+Then commit (scratch files are gitignored):
+
+```
+git -c user.name=mikigit97 -c user.email=mickaelz@post.bgu.ac.il add -A && git -c user.name=mikigit97 -c user.email=mickaelz@post.bgu.ac.il commit -m "scrape: <new N, enriched E, window r<seconds>>"
+```
+
 ## Step 4 — Summary
 
 ```

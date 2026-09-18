@@ -221,6 +221,10 @@ applied.
    `last_email`, and where moved `status` / `status_source` /
    `status_changed_at`, differ from what you read in Step 1.
 2. Run `python build_html.py`.
+3. Commit (scratch files are gitignored):
+   ```
+   git -c user.name=mikigit97 -c user.email=mickaelz@post.bgu.ac.il add -A && git -c user.name=mikigit97 -c user.email=mickaelz@post.bgu.ac.il commit -m "gmail-sync: <imported P, moved M>"
+   ```
 
 ## Step 8 — One-line summary
 

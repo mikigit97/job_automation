@@ -61,7 +61,11 @@ archive a 4–5-year posting (`status`, `archive_reason: "fit"`,
 **Step 3 - Rebuild the dashboard.**
 
 Run `python build_html.py` once at the end so the `CV: <variant> ↗` links
-appear on the rows.
+appear on the rows. Then commit:
+
+```
+git -c user.name=mikigit97 -c user.email=mickaelz@post.bgu.ac.il add -A && git -c user.name=mikigit97 -c user.email=mickaelz@post.bgu.ac.il commit -m "fit-cvs: <fitted N, archived J>"
+```
 
 **Step 4 - Summary.**
 

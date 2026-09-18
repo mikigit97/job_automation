@@ -140,9 +140,9 @@ Three durable base CVs in `cv/variants/`:
 | `state.json` | `last_scrape_at` per source; written by the scraper, drives the LinkedIn time window. |
 | `backups/` | Automatic `jobs.json` backups before migration/maintenance writes (newest 20 kept; gitignored). |
 | `tests/test_gates.py` | Unit tests for gates, parsers, migration (`python tests/test_gates.py`). |
-| `prompts/scrape.md`, `scrape-bigtech.md` | Chrome shortcut text. |
-| `prompts/gmail_sync.md` | Cowork scheduled task. |
-| `prompts/tailor_cvs.md` | Cowork on-demand task. |
+| `CLAUDE.md` | Read first in every session: sync protocol, task → file index, rules. |
+| `prompts/scrape.md`, `scrape-bigtech.md`, `gmail_sync.md` | Text of the scheduled tasks (each task just reads its file). |
+| `prompts/tailor_cvs.md` | On-demand "Fit CVs" task. |
 | `skills/cv-tailor/SKILL.md` | Fitting rules (Part A), variant maintenance (Part B). |
 | `cv/base_cv.html`, `cv/render_pdf.py` | Template and the one-page PDF renderer. |
 | `cv/experience_bank/**/*.md` | Content pool. |

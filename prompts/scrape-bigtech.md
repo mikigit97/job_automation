@@ -240,6 +240,12 @@ Canonical `link` templates:
 | Apple | `Apple` | `https://jobs.apple.com/en-us/details/<ID>` |
 | Amazon | `Amazon` | `https://www.amazon.jobs/en/jobs/<ID>` |
 
+## Step 5 — Commit
+
+```
+git -c user.name=mikigit97 -c user.email=mickaelz@post.bgu.ac.il add -A && git -c user.name=mikigit97 -c user.email=mickaelz@post.bgu.ac.il commit -m "scrape-bigtech: <new N, enriched E>"
+```
+
 ## Step 6 — Summary
 
 ```
