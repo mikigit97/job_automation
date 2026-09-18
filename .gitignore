@@ -29,4 +29,6 @@ cv/variants/*.preview.png
 # Scratch output of the last scrape run
 scrape_raw.json
 gmail_raw.json
-graphify-out/
+# graphify: machine-specific pointer files only (absolute local paths, auto-regenerated)
+graphify-out/.graphify_python
+graphify-out/.graphify_root

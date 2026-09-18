@@ -1,0 +1,332 @@
+{
+  "build_html.py": {
+    "mtime": 1789475477.7499042,
+    "seen": 1789766125.006882,
+    "ast_hash": "147f2a4d3c0106c11bbf99131c071365",
+    "semantic_hash": "147f2a4d3c0106c11bbf99131c071365"
+  },
+  "config.json": {
+    "mtime": 1789475477.768158,
+    "seen": 1789766125.006895,
+    "ast_hash": "d8fe1c0eb408c561bdf8e3ba1ac7b81f",
+    "semantic_hash": "d8fe1c0eb408c561bdf8e3ba1ac7b81f"
+  },
+  "cv/render_pdf.py": {
+    "mtime": 1782754680.6006975,
+    "seen": 1789766125.0069003,
+    "ast_hash": "8fc6bcbecbb8c2469091f5844750d5fd",
+    "semantic_hash": "8fc6bcbecbb8c2469091f5844750d5fd"
+  },
+  "ingest.py": {
+    "mtime": 1789475477.853116,
+    "seen": 1789766125.0069034,
+    "ast_hash": "dbbad8dda37f71bad28be4bf41384d37",
+    "semantic_hash": "dbbad8dda37f71bad28be4bf41384d37"
+  },
+  "jobs.json": {
+    "mtime": 1789716702.148337,
+    "seen": 1789766125.006906,
+    "ast_hash": "774b139692fe109b7cbf5c9da5e88317",
+    "semantic_hash": "774b139692fe109b7cbf5c9da5e88317"
+  },
+  "state.json": {
+    "mtime": 1789716702.1600997,
+    "seen": 1789766125.006909,
+    "ast_hash": "de9dc62c09c21b79a9318b059856129b",
+    "semantic_hash": "de9dc62c09c21b79a9318b059856129b"
+  },
+  "tests/fixtures/jobs_v1_29.json": {
+    "mtime": 1789324600.3172815,
+    "seen": 1789766125.0069115,
+    "ast_hash": "21bfd1dc8259158f29ecdeadf468ebe7",
+    "semantic_hash": "21bfd1dc8259158f29ecdeadf468ebe7"
+  },
+  "tests/test_gates.py": {
+    "mtime": 1789475477.9082575,
+    "seen": 1789766125.006914,
+    "ast_hash": "204a8bb32a1a090e453f73be4f80d74d",
+    "semantic_hash": "204a8bb32a1a090e453f73be4f80d74d"
+  },
+  "CLAUDE.md": {
+    "mtime": 1789758375.9899015,
+    "seen": 1789766125.0069156,
+    "ast_hash": "579728414e9da73fde3c0c9eef2717e7",
+    "semantic_hash": "579728414e9da73fde3c0c9eef2717e7"
+  },
+  "Job_applications.html": {
+    "mtime": 1789716715.14362,
+    "seen": 1789766125.0069175,
+    "ast_hash": "1ba9c2baa974d08961ee99092fa25f9a",
+    "semantic_hash": "1ba9c2baa974d08961ee99092fa25f9a"
+  },
+  "PLAN.md": {
+    "mtime": 1789475478.320638,
+    "seen": 1789766125.0069196,
+    "ast_hash": "cd72ac9b43225c6a0c377734bb316594",
+    "semantic_hash": "cd72ac9b43225c6a0c377734bb316594"
+  },
+  "README.md": {
+    "mtime": 1789758376.0150266,
+    "seen": 1789766125.0069222,
+    "ast_hash": "d9a052a9ee9c795ece1a7bb7baa3633b",
+    "semantic_hash": "d9a052a9ee9c795ece1a7bb7baa3633b"
+  },
+  "cv/base_cv.html": {
+    "mtime": 1782755281.2385924,
+    "seen": 1789766125.0069244,
+    "ast_hash": "68bb9958d7d58d5664fdbeb02f45d621",
+    "semantic_hash": "68bb9958d7d58d5664fdbeb02f45d621"
+  },
+  "cv/experience_bank/README.md": {
+    "mtime": 1782755227.0230749,
+    "seen": 1789766125.0069263,
+    "ast_hash": "a14b8085a4c1719e8f030c4691c28b95",
+    "semantic_hash": "a14b8085a4c1719e8f030c4691c28b95"
+  },
+  "cv/experience_bank/education/bsc-data-engineering.md": {
+    "mtime": 1782755226.8064928,
+    "seen": 1789766125.0069284,
+    "ast_hash": "e7040f4a04894d290ed397423f6d4c77",
+    "semantic_hash": "e7040f4a04894d290ed397423f6d4c77"
+  },
+  "cv/experience_bank/education/msc-data-science.md": {
+    "mtime": 1782755244.3936365,
+    "seen": 1789766125.0069306,
+    "ast_hash": "15b5d3c6867c9b0bd019f329566f7e45",
+    "semantic_hash": "15b5d3c6867c9b0bd019f329566f7e45"
+  },
+  "cv/experience_bank/military/iaf-f16-technician.md": {
+    "mtime": 1782755226.9479823,
+    "seen": 1789766125.0069325,
+    "ast_hash": "768b380cc161623d4776dc74b19cc17a",
+    "semantic_hash": "768b380cc161623d4776dc74b19cc17a"
+  },
+  "cv/experience_bank/research/anomaly-detection.md": {
+    "mtime": 1782755227.0880892,
+    "seen": 1789766125.0069346,
+    "ast_hash": "2c093deef9c7351cb9429aa622e3d1d5",
+    "semantic_hash": "2c093deef9c7351cb9429aa622e3d1d5"
+  },
+  "cv/experience_bank/research/ao3-lexical-trends.md": {
+    "mtime": 1782755227.1563277,
+    "seen": 1789766125.006936,
+    "ast_hash": "d566de6cd10138256fdda6818486b4a7",
+    "semantic_hash": "d566de6cd10138256fdda6818486b4a7"
+  },
+  "cv/experience_bank/research/appparties-web-app.md": {
+    "mtime": 1782755227.2323215,
+    "seen": 1789766125.0069377,
+    "ast_hash": "acd293b7a87b501a600e6d43a326dc3f",
+    "semantic_hash": "acd293b7a87b501a600e6d43a326dc3f"
+  },
+  "cv/experience_bank/research/deezer-recsys.md": {
+    "mtime": 1782755227.332418,
+    "seen": 1789766125.0069423,
+    "ast_hash": "a6e014b9cfebd1f4026fe8aac25be8d2",
+    "semantic_hash": "a6e014b9cfebd1f4026fe8aac25be8d2"
+  },
+  "cv/experience_bank/research/earthquake-ml.md": {
+    "mtime": 1782755227.405497,
+    "seen": 1789766125.0069437,
+    "ast_hash": "3d62eebf16265f540cf28507921fdc21",
+    "semantic_hash": "3d62eebf16265f540cf28507921fdc21"
+  },
+  "cv/experience_bank/research/llm-lora-finetuning.md": {
+    "mtime": 1782755227.4369142,
+    "seen": 1789766125.0069463,
+    "ast_hash": "34c8760ece935f8dddccad0b015ffa72",
+    "semantic_hash": "34c8760ece935f8dddccad0b015ffa72"
+  },
+  "cv/experience_bank/research/multithreaded-trivia-game.md": {
+    "mtime": 1782755227.4844272,
+    "seen": 1789766125.006948,
+    "ast_hash": "7f2528c747bc7a82544d6a9eb8c5dd9f",
+    "semantic_hash": "7f2528c747bc7a82544d6a9eb8c5dd9f"
+  },
+  "cv/experience_bank/research/network-graph-analysis.md": {
+    "mtime": 1782755227.5735912,
+    "seen": 1789766125.00695,
+    "ast_hash": "06918f1d57105de17c0fa2e03d65329e",
+    "semantic_hash": "06918f1d57105de17c0fa2e03d65329e"
+  },
+  "cv/experience_bank/research/s7comm-parser.md": {
+    "mtime": 1782755227.649354,
+    "seen": 1789766125.0069513,
+    "ast_hash": "06ea39c474d4e5aac43cb06a6bfcf15d",
+    "semantic_hash": "06ea39c474d4e5aac43cb06a6bfcf15d"
+  },
+  "cv/experience_bank/research/search-engine.md": {
+    "mtime": 1782755227.7380059,
+    "seen": 1789766125.0069532,
+    "ast_hash": "7482e568c808615e772e7d9affae26de",
+    "semantic_hash": "7482e568c808615e772e7d9affae26de"
+  },
+  "cv/experience_bank/research/sql-data-apps.md": {
+    "mtime": 1782755227.9060214,
+    "seen": 1789766125.006955,
+    "ast_hash": "51adbc071ce7104163bad3a041ba1190",
+    "semantic_hash": "51adbc071ce7104163bad3a041ba1190"
+  },
+  "cv/experience_bank/research/time-series-masters.md": {
+    "mtime": 1782755227.9464195,
+    "seen": 1789766125.0069566,
+    "ast_hash": "7fee93eeff485dfabfa990cb68d62e56",
+    "semantic_hash": "7fee93eeff485dfabfa990cb68d62e56"
+  },
+  "cv/experience_bank/research/trump-tweet-classification.md": {
+    "mtime": 1782755227.9959097,
+    "seen": 1789766125.006958,
+    "ast_hash": "f4bfcff0c9032869e5d7d4f2ac3acd24",
+    "semantic_hash": "f4bfcff0c9032869e5d7d4f2ac3acd24"
+  },
+  "cv/experience_bank/research/user-type-llm-simulation.md": {
+    "mtime": 1782755228.0388892,
+    "seen": 1789766125.00696,
+    "ast_hash": "b08f472cce5f5e5a58dc7f831ab4f973",
+    "semantic_hash": "b08f472cce5f5e5a58dc7f831ab4f973"
+  },
+  "cv/experience_bank/skills/machine-learning.md": {
+    "mtime": 1782755228.0725193,
+    "seen": 1789766125.0069616,
+    "ast_hash": "467ce4fc4fa2f311170c4435c0dea444",
+    "semantic_hash": "467ce4fc4fa2f311170c4435c0dea444"
+  },
+  "cv/experience_bank/skills/programming.md": {
+    "mtime": 1782755228.1296282,
+    "seen": 1789766125.0069633,
+    "ast_hash": "d01b24a0e958a38056deaa693b2fecfe",
+    "semantic_hash": "d01b24a0e958a38056deaa693b2fecfe"
+  },
+  "cv/experience_bank/skills/software-and-data.md": {
+    "mtime": 1782755228.2400935,
+    "seen": 1789766125.0069647,
+    "ast_hash": "f8bf01c6a340f9f0ffcecd9a191964b3",
+    "semantic_hash": "f8bf01c6a340f9f0ffcecd9a191964b3"
+  },
+  "cv/experience_bank/skills/tools.md": {
+    "mtime": 1782755228.3173542,
+    "seen": 1789766125.0069664,
+    "ast_hash": "76eb7321d67414b0fa5089a9b7e93638",
+    "semantic_hash": "76eb7321d67414b0fa5089a9b7e93638"
+  },
+  "cv/experience_bank/volunteering/volunteering.md": {
+    "mtime": 1782755228.392608,
+    "seen": 1789766125.006968,
+    "ast_hash": "8ce776dcebc63f100d69ca561031ceda",
+    "semantic_hash": "8ce776dcebc63f100d69ca561031ceda"
+  },
+  "cv/experience_bank/work/cyberbgu.md": {
+    "mtime": 1782755228.4310737,
+    "seen": 1789766125.00697,
+    "ast_hash": "eecb26570b2fbfcfaf5847ef3ac84dc9",
+    "semantic_hash": "eecb26570b2fbfcfaf5847ef3ac84dc9"
+  },
+  "cv/experience_bank/work/math-tutor.md": {
+    "mtime": 1782755228.4888265,
+    "seen": 1789766125.0069714,
+    "ast_hash": "560c64ad01cf1f1fe4e8348890c02aa5",
+    "semantic_hash": "560c64ad01cf1f1fe4e8348890c02aa5"
+  },
+  "cv/experience_bank/work/samsung.md": {
+    "mtime": 1782755228.5560331,
+    "seen": 1789766125.006973,
+    "ast_hash": "a764f732f0f79d3a327eeec5fbe873a7",
+    "semantic_hash": "a764f732f0f79d3a327eeec5fbe873a7"
+  },
+  "cv/tailored/amazon-sde-i.html": {
+    "mtime": 1782755309.7743473,
+    "seen": 1789766125.0069747,
+    "ast_hash": "e59ed40227fa5bc10378342cad222d8e",
+    "semantic_hash": "e59ed40227fa5bc10378342cad222d8e"
+  },
+  "cv/tailored/amazon-sde-i.notes.md": {
+    "mtime": 1782755244.2924378,
+    "seen": 1789766125.0069764,
+    "ast_hash": "6ea0407360543d5d788470bead8c7560",
+    "semantic_hash": "6ea0407360543d5d788470bead8c7560"
+  },
+  "cv/variants/ai-llm-engineer.html": {
+    "mtime": 1788529086.5785425,
+    "seen": 1789766125.006978,
+    "ast_hash": "686023b05625abe0cad7f42a1b8a87c6",
+    "semantic_hash": "686023b05625abe0cad7f42a1b8a87c6"
+  },
+  "cv/variants/data-scientist-ml.html": {
+    "mtime": 1788529086.515325,
+    "seen": 1789766125.00698,
+    "ast_hash": "028656c873476b75be26c2d52804a6b0",
+    "semantic_hash": "028656c873476b75be26c2d52804a6b0"
+  },
+  "cv/variants/software-engineer-ml.html": {
+    "mtime": 1788529054.1424856,
+    "seen": 1789766125.0069823,
+    "ast_hash": "e59ed40227fa5bc10378342cad222d8e",
+    "semantic_hash": "e59ed40227fa5bc10378342cad222d8e"
+  },
+  "prompts/gmail_sync.md": {
+    "mtime": 1789758376.079447,
+    "seen": 1789766125.006984,
+    "ast_hash": "8755a62c7e8e8866074fd134d5e6f35b",
+    "semantic_hash": "8755a62c7e8e8866074fd134d5e6f35b"
+  },
+  "prompts/scrape-bigtech.md": {
+    "mtime": 1789758376.0574832,
+    "seen": 1789766125.0069854,
+    "ast_hash": "62342cc7fba5a1dec447ad78820a1d61",
+    "semantic_hash": "62342cc7fba5a1dec447ad78820a1d61"
+  },
+  "prompts/scrape.md": {
+    "mtime": 1789758376.0350902,
+    "seen": 1789766125.006987,
+    "ast_hash": "e54fd477880275d40a1761146666b164",
+    "semantic_hash": "e54fd477880275d40a1761146666b164"
+  },
+  "prompts/tailor_cvs.md": {
+    "mtime": 1789758376.097934,
+    "seen": 1789766125.0069888,
+    "ast_hash": "17cc0f3359fcc8df02bc22db9a77c06e",
+    "semantic_hash": "17cc0f3359fcc8df02bc22db9a77c06e"
+  },
+  "skills/cv-tailor/SKILL.md": {
+    "mtime": 1789475478.1521518,
+    "seen": 1789766125.0069907,
+    "ast_hash": "8e02a61ffbe973d097b6014b29af26e7",
+    "semantic_hash": "8e02a61ffbe973d097b6014b29af26e7"
+  },
+  "templates/dashboard.html": {
+    "mtime": 1789475477.9684687,
+    "seen": 1789766125.006992,
+    "ast_hash": "055a1bd434ca4029efed94920df40023",
+    "semantic_hash": "055a1bd434ca4029efed94920df40023"
+  },
+  "cv/base_cv.pdf": {
+    "mtime": 1776762283.2230124,
+    "seen": 1789766125.0069942,
+    "ast_hash": "10d60255c74a21e0f0ef5765ea019543",
+    "semantic_hash": "10d60255c74a21e0f0ef5765ea019543"
+  },
+  "cv/tailored/Mickael Zeitoun - CV.pdf": {
+    "mtime": 1782755337.6792386,
+    "seen": 1789766125.0069957,
+    "ast_hash": "8347cbe5d6d0a3f24f137d6d02ee1fd4",
+    "semantic_hash": "8347cbe5d6d0a3f24f137d6d02ee1fd4"
+  },
+  "cv/variants/ai-llm-engineer.pdf": {
+    "mtime": 1788529111.284351,
+    "seen": 1789766125.0069976,
+    "ast_hash": "60ac4ba5da0dee7be84dc3d7e50692c0",
+    "semantic_hash": "60ac4ba5da0dee7be84dc3d7e50692c0"
+  },
+  "cv/variants/data-scientist-ml.pdf": {
+    "mtime": 1788529123.4565864,
+    "seen": 1789766125.0069995,
+    "ast_hash": "edfa9e47300085e61ba4aef87bc8cf6b",
+    "semantic_hash": "edfa9e47300085e61ba4aef87bc8cf6b"
+  },
+  "cv/variants/software-engineer-ml.pdf": {
+    "mtime": 1788529139.7267902,
+    "seen": 1789766125.0070014,
+    "ast_hash": "39c54159b7321678ddad9cfb426b807e",
+    "semantic_hash": "39c54159b7321678ddad9cfb426b807e"
+  }
+}
